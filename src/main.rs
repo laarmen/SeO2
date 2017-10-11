@@ -33,7 +33,7 @@ fn main() {
     let mut input = Vec::new();
     io::stdin().read_to_end(&mut input).expect("Couldn't read from stdin");
 
-    match parse_all(&*input) {
+    match parse_all(&input) {
         ParseResult::Done(blk) => {
             for stmt in blk.stmts {
                 println!("{:?}", stmt);
