@@ -22,15 +22,18 @@ fn eval_addition(left_op: &Box<Exp>, right_op: &Box<Exp>, inverse: bool) -> LuaV
     let left_op = eval_expr(&left_op);
     let right_op = eval_expr(&right_op);
 
+    // We're more likely to be in the float realm
+    let multiplier = if inverse { -1. } else { 1. };
+
     match left_op {
         LuaValue::Integer(i) => match right_op {
-            LuaValue::Integer(j) => if inverse { LuaValue::Integer(i-j) } else { LuaValue::Integer(i+j) },
-            LuaValue::Float(j) => if inverse { LuaValue::Float((i as f64)-j) } else { LuaValue::Float((i as f64)+j) },
+            LuaValue::Integer(j) => LuaValue::Integer(i+j*(multiplier as isize)),
+            LuaValue::Float(j) => LuaValue::Float((i as f64)+j*multiplier),
             _ => panic!("Trying to add non-numeric stuff.")
         },
         LuaValue::Float(i) => match right_op {
-            LuaValue::Integer(j) => if inverse { LuaValue::Float(i-(j as f64)) } else { LuaValue::Float(i+(j as f64)) },
-            LuaValue::Float(j) => if inverse { LuaValue::Float(i-j) } else { LuaValue::Float(i+j) },
+            LuaValue::Integer(j) => LuaValue::Float(i+(j as f64)*multiplier),
+            LuaValue::Float(j) => LuaValue::Float(i+j*multiplier),
             _ => panic!("Trying to add non-numeric stuff.")
         },
         _ => panic!("Trying to add non-numeric stuff.")
