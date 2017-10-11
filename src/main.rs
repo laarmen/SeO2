@@ -1,8 +1,5 @@
 extern crate nom_lua53;
 
-use std::str::FromStr;
-use std::ops::Deref;
-
 use std::io::{self, Read};
 use nom_lua53::{parse_all, ParseResult, Statement, Exp};
 
@@ -14,9 +11,9 @@ enum LuaValue {
     Str(String),
 }
 
-// There's got to be a better way to do this?
+// What do we say? We say "Merci Basile!"
 fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
-    return String::from_str(String::from_utf8_lossy(string.0.deref()).deref()).expect("No way...");
+    return String::from_utf8_lossy(&(string.0)).to_string();
 }
 
 fn eval_expr(expr: &Exp) -> std::option::Option<LuaValue> {
