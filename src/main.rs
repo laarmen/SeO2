@@ -17,14 +17,14 @@ fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
 }
 
 fn eval_expr(expr: &Exp) -> std::option::Option<LuaValue> {
-    match expr {
-        &Exp::Nil => None,
-        &Exp::Bool(val) => Some(LuaValue::Boolean(val)),
-        &Exp::Num(val) => Some(match val {
+    match *expr {
+        Exp::Nil => None,
+        Exp::Bool(val) => Some(LuaValue::Boolean(val)),
+        Exp::Num(val) => Some(match val {
             nom_lua53::num::Numeral::Float(fl) => LuaValue::Float(fl),
             nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
         }),
-        &Exp::Str(ref s) => Some(LuaValue::Str(lit_to_string(s))),
+        Exp::Str(ref s) => Some(LuaValue::Str(lit_to_string(s))),
         _ => None,
     }
 }
