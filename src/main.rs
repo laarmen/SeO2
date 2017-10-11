@@ -5,6 +5,7 @@ use nom_lua53::{parse_all, ParseResult, Statement, Exp};
 
 #[derive(Debug)]
 enum LuaValue {
+    Nil,
     Integer(isize),
     Float(f64),
     Boolean(bool),
@@ -16,16 +17,17 @@ fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
     return String::from_utf8_lossy(&(string.0)).to_string();
 }
 
-fn eval_expr(expr: &Exp) -> std::option::Option<LuaValue> {
+fn eval_expr(expr: &Exp) -> LuaValue {
     match *expr {
-        Exp::Nil => None,
-        Exp::Bool(val) => Some(LuaValue::Boolean(val)),
-        Exp::Num(val) => Some(match val {
+        Exp::Nil => LuaValue::Nil,
+        Exp::Bool(val) => LuaValue::Boolean(val),
+        Exp::Num(val) => match val {
             nom_lua53::num::Numeral::Float(fl) => LuaValue::Float(fl),
             nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
-        }),
-        Exp::Str(ref s) => Some(LuaValue::Str(lit_to_string(s))),
-        _ => None,
+        },
+        Exp::BinExp(ref left, ref op, ref right) => eval_binary_expr(left, right, &op),
+        Exp::Str(ref s) => LuaValue::Str(lit_to_string(s)),
+        _ => LuaValue::Nil,
     }
 }
 
@@ -41,13 +43,8 @@ fn main() {
                     Statement::LVarAssign(ass) => {
                         let values = ass.vals.expect("There should be some values. Why isn't there any value?!");
                         for (var, val) in ass.vars.iter().zip(values.iter()) {
-
                             let computed_value = eval_expr(val);
-                            match computed_value {
-                                Some(lval) =>
-                                    println!("Assigning {:?} to {:?}", lval, var),
-                                _ => {}
-                            }
+                            println!("Assigning {:?} to {:?}", computed_value, var);
                         }
                     }
                     Statement::Assignment(ass) => {
