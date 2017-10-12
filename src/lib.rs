@@ -12,55 +12,69 @@ pub enum LuaValue {
     Str(String),
 }
 
+
+#[derive(Debug)]
+pub enum LuaError {
+    TypeError(String),
+    ArithmeticError(String),
+}
+
+use LuaError::*;
+
+type Result<T> = std::result::Result<T, LuaError>;
+
 // What do we say? We say "Merci Basile!"
 fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
     return String::from_utf8_lossy(&(string.0)).to_string();
 }
 
-fn eval_addition(left_op: &Box<Exp>, right_op: &Box<Exp>, inverse: bool) -> LuaValue {
-    let left_op = eval_expr(&left_op);
-    let right_op = eval_expr(&right_op);
+fn eval_arithmetic(left_op: &Box<Exp>, right_op: &Box<Exp>,
+                   integer: fn(isize, isize) -> Result<LuaValue>,
+                   float: fn(f64, f64) -> Result<LuaValue>) -> Result<LuaValue> {
 
-    // We're more likely to be in the float realm
-    let multiplier = if inverse { -1. } else { 1. };
+    let left_op = eval_expr(&left_op)?;
+    let right_op = eval_expr(&right_op)?;
 
     match left_op {
         LuaValue::Integer(i) => match right_op {
-            LuaValue::Integer(j) => LuaValue::Integer(i+j*(multiplier as isize)),
-            LuaValue::Float(j) => LuaValue::Float((i as f64)+j*multiplier),
-            _ => panic!("Trying to add non-numeric stuff.")
+            LuaValue::Integer(j) => integer(i, j),
+            LuaValue::Float(j) => float(i as f64, j),
+            _ => Err(TypeError("Trying to do arithmetic on non-numerical values.".to_owned()))
         },
         LuaValue::Float(i) => match right_op {
-            LuaValue::Integer(j) => LuaValue::Float(i+(j as f64)*multiplier),
-            LuaValue::Float(j) => LuaValue::Float(i+j*multiplier),
-            _ => panic!("Trying to add non-numeric stuff.")
+            LuaValue::Integer(j) => float(i, j as f64),
+            LuaValue::Float(j) => float(i, j),
+            _ => Err(TypeError("Trying to do arithmetic on non-numerical values.".to_owned()))
         },
-        _ => panic!("Trying to add non-numeric stuff.")
+        _ => Err(TypeError("Trying to do arithmetic on non-numerical values.".to_owned()))
     }
 }
 
-fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -> LuaValue
-{
+fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -> Result<LuaValue> {
     // We cannot yet evaluate the operands as some binary operators are used to shortcut
     // evaluation.
     match *operator {
-        BinOp::Plus => eval_addition(left_op, right_op, false),
-        BinOp::Minus => eval_addition(left_op, right_op, true),
-        _ => LuaValue::Nil
+        BinOp::Plus => eval_arithmetic(left_op, right_op,
+                                       |i, j| Ok(LuaValue::Integer(i+j)),
+                                       |i, j| Ok(LuaValue::Float(i+j))),
+        BinOp::Minus => eval_arithmetic(left_op, right_op,
+                                        |i, j| Ok(LuaValue::Integer(i-j)),
+                                        |i, j| Ok(LuaValue::Float(i-j))),
+        _ => Ok(LuaValue::Nil)
     }
 }
 
-fn eval_expr(expr: &Exp) -> LuaValue {
+fn eval_expr(expr: &Exp) -> Result<LuaValue> {
     match *expr {
-        Exp::Nil => LuaValue::Nil,
-        Exp::Bool(val) => LuaValue::Boolean(val),
-        Exp::Num(val) => match val {
+        Exp::Nil => Ok(LuaValue::Nil),
+        Exp::Bool(val) => Ok(LuaValue::Boolean(val)),
+        Exp::Num(val) => Ok(match val {
             nom_lua53::num::Numeral::Float(fl) => LuaValue::Float(fl),
             nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
-        },
+        }),
         Exp::BinExp(ref left, ref op, ref right) => eval_binary_expr(left, right, &op),
-        Exp::Str(ref s) => LuaValue::Str(lit_to_string(s)),
-        _ => LuaValue::Nil,
+        Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
+        _ => Ok(LuaValue::Nil),
     }
 }
 
