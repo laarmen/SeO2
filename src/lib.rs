@@ -3,7 +3,7 @@ extern crate nom_lua53;
 use nom_lua53::{parse_all, ParseResult, Statement, Exp};
 use nom_lua53::op::BinOp;
 
-#[derive(Debug)]
+#[derive(PartialEq,Debug)]
 pub enum LuaValue {
     Nil,
     Integer(isize),
@@ -13,7 +13,7 @@ pub enum LuaValue {
 }
 
 
-#[derive(Debug)]
+#[derive(PartialEq,Eq,Debug)]
 pub enum LuaError {
     TypeError(String),
     ArithmeticError(String),
@@ -150,7 +150,54 @@ pub fn eval_file(input: &[u8]) {
 mod tests {
     use super::*;
 
+    use nom_lua53::{parse_all, ParseResult, Statement, Exp};
+    use nom_lua53::num::Numeral;
+    use nom_lua53::op::BinOp;
+
+
     #[test]
-    fn mytest() {
+    fn addition_test() {
+        // 1. + -1. == 0.
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Panicking!");
+        assert_eq!(res, LuaValue::Float(0.));
+
+        // 1 + -1. == 0.
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Panicking!");
+        assert_eq!( res, LuaValue::Float(0.));
+        // 1 + 3 == 4
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Plus).expect("Panicking!");
+        assert_eq!(res, LuaValue::Integer(4));
+    }
+
+    #[test]
+    fn test_arithmetic_types() {
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Type error!");
+
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Int(-1))), &BinOp::Plus).expect("Type error!");
+
+        let res = eval_binary_expr(&Box::new(Exp::Bool(true)), &Box::new(Exp::Num(Numeral::Int(-1))), &BinOp::Plus).expect_err("No type error, there should be one!");
+        assert!(match res { TypeError(_) => true, _ => false })
+    }
+
+    #[test]
+    fn substraction_test() {
+        // 1. + -1. == 0.
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).expect("Panicking!");
+        assert_eq!(
+            res,
+            LuaValue::Float(2.)
+            );
+        // 1 + -1. == 0.
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).expect("Panicking!");
+        assert_eq!(
+            res,
+            LuaValue::Float(2.)
+            );
+        // 1 + 3 == 4
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Minus).expect("Panicking!");
+        assert_eq!(
+            res,
+            LuaValue::Integer(-2)
+            );
     }
 }
