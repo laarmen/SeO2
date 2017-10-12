@@ -144,3 +144,13 @@ pub fn eval_file(input: &[u8]) {
         }
     }
 }
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn mytest() {
+    }
+}
