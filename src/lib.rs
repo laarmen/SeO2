@@ -60,6 +60,12 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
         BinOp::Minus => eval_arithmetic(left_op, right_op,
                                         |i, j| Ok(LuaValue::Integer(i-j)),
                                         |i, j| Ok(LuaValue::Float(i-j))),
+        BinOp::Mul => eval_arithmetic(left_op, right_op,
+                                      |i, j| Ok(LuaValue::Integer(i*j)),
+                                      |i, j| Ok(LuaValue::Float(i*j))),
+        BinOp::Pow => eval_arithmetic(left_op, right_op,
+                                         |i, j| Ok(LuaValue::Float((i as f64).powf(j as f64))),
+                                         |i, j| Ok(LuaValue::Float(i.powf(j)))),
         _ => Ok(LuaValue::Nil)
     }
 }
