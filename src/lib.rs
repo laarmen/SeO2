@@ -63,6 +63,39 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
         BinOp::Mul => eval_arithmetic(left_op, right_op,
                                       |i, j| Ok(LuaValue::Integer(i*j)),
                                       |i, j| Ok(LuaValue::Float(i*j))),
+        BinOp::Div => eval_arithmetic(left_op, right_op,
+                                      |i, j| if j == 0 {
+                                          Err(ArithmeticError("Dividing by 0".to_owned()))
+                                      } else {
+                                          Ok(LuaValue::Float((i as f64)/(j as f64)))
+                                      },
+                                      |i, j| if j == 0. {
+                                          Err(ArithmeticError("Dividing by 0".to_owned()))
+                                      } else {
+                                          Ok(LuaValue::Float(i/j))
+                                      }),
+        BinOp::Mod => eval_arithmetic(left_op, right_op,
+                                      |i, j| if j == 0 {
+                                          Err(ArithmeticError("Dividing by 0".to_owned()))
+                                      } else {
+                                          Ok(LuaValue::Integer(i % j))
+                                      },
+                                      |i, j| if j == 0. {
+                                          Err(ArithmeticError("Dividing by 0".to_owned()))
+                                      } else {
+                                          Ok(LuaValue::Float(i - (i/j).floor()*j))
+                                      }),
+        BinOp::IntDiv => eval_arithmetic(left_op, right_op,
+                                         |i, j| if j == 0 {
+                                             Err(ArithmeticError("Dividing by 0".to_owned()))
+                                         } else {
+                                             Ok(LuaValue::Integer(i/j))
+                                         },
+                                         |i, j| if j == 0. {
+                                             Err(ArithmeticError("Dividing by 0".to_owned()))
+                                         } else {
+                                             Ok(LuaValue::Integer((i/j).floor() as isize))
+                                         }),
         BinOp::Pow => eval_arithmetic(left_op, right_op,
                                          |i, j| Ok(LuaValue::Float((i as f64).powf(j as f64))),
                                          |i, j| Ok(LuaValue::Float(i.powf(j)))),
