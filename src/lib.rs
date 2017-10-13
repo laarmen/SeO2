@@ -171,9 +171,9 @@ mod tests {
 
     #[test]
     fn test_arithmetic_types() {
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Type error!");
+        eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Type error!");
 
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Int(-1))), &BinOp::Plus).expect("Type error!");
+        eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Int(-1))), &BinOp::Plus).expect("Type error!");
 
         let res = eval_binary_expr(&Box::new(Exp::Bool(true)), &Box::new(Exp::Num(Numeral::Int(-1))), &BinOp::Plus).expect_err("No type error, there should be one!");
         assert!(match res { TypeError(_) => true, _ => false })
