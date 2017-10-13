@@ -208,4 +208,19 @@ mod tests {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(10))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Mul).expect("Panicking!");
         assert_eq!(res, LuaValue::Integer(30));
     }
+
+    #[test]
+    fn test_division() {
+        // 1.5 / 0.5. == 3.0
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::Div).expect("Panicking!");
+        assert_eq!(res, LuaValue::Float(3.));
+
+        // 3 / -2. == -1.5
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Float(-2.0))), &BinOp::Div).expect("Panicking!");
+        assert_eq!(res, LuaValue::Float(-1.5));
+
+        // 3 / 2 == 1.5
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Int(2))), &BinOp::Div).expect("Panicking!");
+        assert_eq!(res, LuaValue::Float(1.5));
+    }
 }
