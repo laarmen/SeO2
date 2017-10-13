@@ -158,14 +158,14 @@ mod tests {
     #[test]
     fn test_addition() {
         // 1. + -1. == 0.
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).unwrap();
         assert_eq!(res, LuaValue::Float(0.));
 
         // 1 + -1. == 0.
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).unwrap();
         assert_eq!( res, LuaValue::Float(0.));
         // 1 + 3 == 4
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Plus).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Plus).unwrap();
         assert_eq!(res, LuaValue::Integer(4));
     }
 
@@ -182,45 +182,45 @@ mod tests {
     #[test]
     fn test_substraction() {
         // 1. - -1. == 2.
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).unwrap();
         assert_eq!(res, LuaValue::Float(2.));
 
         // 1 - -1. == 2.
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).unwrap();
         assert_eq!(res, LuaValue::Float(2.));
 
         // 1 - 3 == -2
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Minus).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Minus).unwrap();
         assert_eq!(res, LuaValue::Integer(-2));
     }
 
     #[test]
     fn test_multiplication() {
         // 1.5 * 2.5. == 3.75.
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(2.5))), &BinOp::Mul).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(2.5))), &BinOp::Mul).unwrap();
         assert_eq!(res, LuaValue::Float(3.75));
 
         // -2 * 1.25 == -2.5.
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(-2))), &Box::new(Exp::Num(Numeral::Float(1.25))), &BinOp::Mul).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(-2))), &Box::new(Exp::Num(Numeral::Float(1.25))), &BinOp::Mul).unwrap();
         assert_eq!(res, LuaValue::Float(-2.5));
 
         // 10 * 3 == 30
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(10))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Mul).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(10))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Mul).unwrap();
         assert_eq!(res, LuaValue::Integer(30));
     }
 
     #[test]
     fn test_division() {
         // 1.5 / 0.5. == 3.0
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::Div).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::Div).unwrap();
         assert_eq!(res, LuaValue::Float(3.));
 
         // 3 / -2. == -1.5
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Float(-2.0))), &BinOp::Div).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Float(-2.0))), &BinOp::Div).unwrap();
         assert_eq!(res, LuaValue::Float(-1.5));
 
         // 3 / 2 == 1.5
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Int(2))), &BinOp::Div).expect("Panicking!");
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Int(2))), &BinOp::Div).unwrap();
         assert_eq!(res, LuaValue::Float(1.5));
     }
 }
