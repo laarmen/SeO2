@@ -78,7 +78,9 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
                                       |i, j| if j == 0 {
                                           Err(ArithmeticError("Dividing by 0".to_owned()))
                                       } else {
-                                          Ok(LuaValue::Integer(i % j))
+                                          // Careful! The Lua operation is a true modulo whereas
+                                          // Rust follows the hardware "remainder" spec.
+                                          Ok(LuaValue::Integer((i % j + j) % j))
                                       },
                                       |i, j| if j == 0. {
                                           Err(ArithmeticError("Dividing by 0".to_owned()))
@@ -97,8 +99,8 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
                                              Ok(LuaValue::Integer((i/j).floor() as isize))
                                          }),
         BinOp::Pow => eval_arithmetic(left_op, right_op,
-                                         |i, j| Ok(LuaValue::Float((i as f64).powf(j as f64))),
-                                         |i, j| Ok(LuaValue::Float(i.powf(j)))),
+                                      |i, j| Ok(LuaValue::Float((i as f64).powf(j as f64))),
+                                      |i, j| Ok(LuaValue::Float(i.powf(j)))),
         _ => Ok(LuaValue::Nil)
     }
 }
@@ -240,6 +242,21 @@ mod tests {
     }
 
     #[test]
+    fn test_mod() {
+        // 1.5 % 0.5. == 0.
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::Mod).unwrap();
+        assert_eq!(res, LuaValue::Float(0.));
+
+        // -3.5 % 2. == 0.5
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(-3.5))), &Box::new(Exp::Num(Numeral::Float(2.0))), &BinOp::Mod).unwrap();
+        assert_eq!(res, LuaValue::Float(0.5));
+
+        // -4 % 3 == 2
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(-4))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Mod).unwrap();
+        assert_eq!(res, LuaValue::Integer(2));
+    }
+
+    #[test]
     fn test_divisions_null_error() {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(0))), &BinOp::Div).unwrap_err();
         assert!(match res { ArithmeticError(_) => true, _ => false });
@@ -251,6 +268,12 @@ mod tests {
         assert!(match res { ArithmeticError(_) => true, _ => false });
 
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::IntDiv).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
+
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(0))), &BinOp::Mod).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
+
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::Mod).unwrap_err();
         assert!(match res { ArithmeticError(_) => true, _ => false });
     }
 }
