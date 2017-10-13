@@ -232,4 +232,19 @@ mod tests {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::Div).unwrap_err();
         assert!(match res { ArithmeticError(_) => true, _ => false });
     }
+
+    #[test]
+    fn test_intdiv() {
+        // 1.5 // 0.5. == 3
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::IntDiv).unwrap();
+        assert_eq!(res, LuaValue::Integer(3));
+
+        // 3 // -2. == -2
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Float(-2.0))), &BinOp::IntDiv).unwrap();
+        assert_eq!(res, LuaValue::Integer(-2));
+
+        // 3 // 2 == 1
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Int(2))), &BinOp::IntDiv).unwrap();
+        assert_eq!(res, LuaValue::Integer(1));
+    }
 }
