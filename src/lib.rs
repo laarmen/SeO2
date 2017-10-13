@@ -181,23 +181,16 @@ mod tests {
 
     #[test]
     fn substraction_test() {
-        // 1. + -1. == 0.
+        // 1. - -1. == 2.
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).expect("Panicking!");
-        assert_eq!(
-            res,
-            LuaValue::Float(2.)
-            );
-        // 1 + -1. == 0.
+        assert_eq!(res, LuaValue::Float(2.));
+
+        // 1 - -1. == 2.
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).expect("Panicking!");
-        assert_eq!(
-            res,
-            LuaValue::Float(2.)
-            );
-        // 1 + 3 == 4
+        assert_eq!(res, LuaValue::Float(2.));
+
+        // 1 - 3 == -2
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Minus).expect("Panicking!");
-        assert_eq!(
-            res,
-            LuaValue::Integer(-2)
-            );
+        assert_eq!(res, LuaValue::Integer(-2));
     }
 }
