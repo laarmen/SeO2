@@ -193,4 +193,19 @@ mod tests {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Minus).expect("Panicking!");
         assert_eq!(res, LuaValue::Integer(-2));
     }
+
+    #[test]
+    fn multiplication_test() {
+        // 1.5 * 2.5. == 3.75.
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(2.5))), &BinOp::Mul).expect("Panicking!");
+        assert_eq!(res, LuaValue::Float(3.75));
+
+        // -2 * 1.25 == -2.5.
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(-2))), &Box::new(Exp::Num(Numeral::Float(1.25))), &BinOp::Mul).expect("Panicking!");
+        assert_eq!(res, LuaValue::Float(-2.5));
+
+        // 10 * 3 == 30
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(10))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Mul).expect("Panicking!");
+        assert_eq!(res, LuaValue::Integer(30));
+    }
 }
