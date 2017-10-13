@@ -225,15 +225,6 @@ mod tests {
     }
 
     #[test]
-    fn test_division_null_error() {
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(0))), &BinOp::Div).unwrap_err();
-        assert!(match res { ArithmeticError(_) => true, _ => false });
-
-        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::Div).unwrap_err();
-        assert!(match res { ArithmeticError(_) => true, _ => false });
-    }
-
-    #[test]
     fn test_intdiv() {
         // 1.5 // 0.5. == 3
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::IntDiv).unwrap();
@@ -246,5 +237,20 @@ mod tests {
         // 3 // 2 == 1
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Int(2))), &BinOp::IntDiv).unwrap();
         assert_eq!(res, LuaValue::Integer(1));
+    }
+
+    #[test]
+    fn test_divisions_null_error() {
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(0))), &BinOp::Div).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
+
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::Div).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
+
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(0))), &BinOp::IntDiv).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
+
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::IntDiv).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
     }
 }
