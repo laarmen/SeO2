@@ -223,4 +223,13 @@ mod tests {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(3))), &Box::new(Exp::Num(Numeral::Int(2))), &BinOp::Div).unwrap();
         assert_eq!(res, LuaValue::Float(1.5));
     }
+
+    #[test]
+    fn test_division_null_error() {
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(0))), &BinOp::Div).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
+
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::Div).unwrap_err();
+        assert!(match res { ArithmeticError(_) => true, _ => false });
+    }
 }
