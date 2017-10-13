@@ -156,7 +156,7 @@ mod tests {
 
 
     #[test]
-    fn addition_test() {
+    fn test_addition() {
         // 1. + -1. == 0.
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).expect("Panicking!");
         assert_eq!(res, LuaValue::Float(0.));
@@ -180,7 +180,7 @@ mod tests {
     }
 
     #[test]
-    fn substraction_test() {
+    fn test_substraction() {
         // 1. - -1. == 2.
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Minus).expect("Panicking!");
         assert_eq!(res, LuaValue::Float(2.));
@@ -195,7 +195,7 @@ mod tests {
     }
 
     #[test]
-    fn multiplication_test() {
+    fn test_multiplication() {
         // 1.5 * 2.5. == 3.75.
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(2.5))), &BinOp::Mul).expect("Panicking!");
         assert_eq!(res, LuaValue::Float(3.75));
