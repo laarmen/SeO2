@@ -120,6 +120,11 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
         BinOp::Pow => eval_arithmetic(left_op, right_op,
                                       |i, j| Ok(LuaValue::Float((i as f64).powf(j as f64))),
                                       |i, j| Ok(LuaValue::Float(i.powf(j)))),
+        BinOp::BitAnd => eval_arithmetic(left_op, right_op,
+                                      |i, j| Ok(LuaValue::Integer(i & j)),
+                                      // This is inefficient as there might have been some casting
+                                      // already...
+                                      |i, j| Ok(LuaValue::Integer((i as isize) & (j as isize)))),
         _ => Ok(LuaValue::Nil)
     }
 }
