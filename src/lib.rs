@@ -276,4 +276,19 @@ mod tests {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Float(0.))), &BinOp::Mod).unwrap_err();
         assert!(match res { ArithmeticError(_) => true, _ => false });
     }
+
+    #[test]
+    fn test_bitwise_and() {
+        // 1.5 & 0.5 == 0
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::BitAnd).unwrap();
+        assert_eq!(res, LuaValue::Integer(0));
+
+        // 3.5 & 10 == 2
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(3.5))), &Box::new(Exp::Num(Numeral::Int(10))), &BinOp::BitAnd).unwrap();
+        assert_eq!(res, LuaValue::Integer(2));
+
+        // -4 % 3 == 2
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(isize::max_value()))), &Box::new(Exp::Num(Numeral::Int(42))), &BinOp::BitAnd).unwrap();
+        assert_eq!(res, LuaValue::Integer(42));
+    }
 }
