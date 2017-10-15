@@ -28,12 +28,31 @@ fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
     return String::from_utf8_lossy(&(string.0)).to_string();
 }
 
+fn string_to_num_coercion(val: LuaValue) -> LuaValue {
+    match val {
+        LuaValue::Str(s) => {
+            let parsed =  str::parse::<isize>(&s);
+            match parsed {
+                Ok(n) => LuaValue::Integer(n),
+                Err(_) => {
+                    let parsed =  str::parse::<f64>(&s);
+                    match parsed {
+                        Ok(n) => LuaValue::Float(n),
+                        Err(_) => LuaValue::Str(s)
+                    }
+                }
+            }
+        },
+        _ => val
+    }
+}
+
 fn eval_arithmetic(left_op: &Box<Exp>, right_op: &Box<Exp>,
                    integer: fn(isize, isize) -> Result<LuaValue>,
                    float: fn(f64, f64) -> Result<LuaValue>) -> Result<LuaValue> {
 
-    let left_op = eval_expr(&left_op)?;
-    let right_op = eval_expr(&right_op)?;
+    let left_op = string_to_num_coercion(eval_expr(&left_op)?);
+    let right_op = string_to_num_coercion(eval_expr(&right_op)?);
 
     match left_op {
         LuaValue::Integer(i) => match right_op {
@@ -153,8 +172,11 @@ mod tests {
     use super::*;
 
     use nom_lua53::{parse_all, ParseResult, Statement, Exp};
+    use nom_lua53::string::StringLit;
     use nom_lua53::num::Numeral;
     use nom_lua53::op::BinOp;
+
+    use std::borrow::Cow;
 
 
     #[test]
@@ -163,9 +185,17 @@ mod tests {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).unwrap();
         assert_eq!(res, LuaValue::Float(0.));
 
+        let res = eval_binary_expr(&Box::new(Exp::Str(StringLit(Cow::from(&b"1.0"[..])))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).unwrap();
+        assert_eq!(res, LuaValue::Float(0.));
+
         // 1 + -1. == 0.
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).unwrap();
         assert_eq!( res, LuaValue::Float(0.));
+
+        // "1" + 3 == 4
+        let res = eval_binary_expr(&Box::new(Exp::Str(StringLit(Cow::from(&b"1"[..])))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Plus).unwrap();
+        assert_eq!(res, LuaValue::Integer(4));
+
         // 1 + 3 == 4
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Int(3))), &BinOp::Plus).unwrap();
         assert_eq!(res, LuaValue::Integer(4));
@@ -176,6 +206,8 @@ mod tests {
         eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1))), &Box::new(Exp::Num(Numeral::Float(-1.0))), &BinOp::Plus).unwrap();
 
         eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Num(Numeral::Int(-1))), &BinOp::Plus).unwrap();
+
+        eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.))), &Box::new(Exp::Str(StringLit(Cow::from(&b"-1"[..])))), &BinOp::Plus).unwrap();
 
         let res = eval_binary_expr(&Box::new(Exp::Bool(true)), &Box::new(Exp::Num(Numeral::Int(-1))), &BinOp::Plus).unwrap_err();
         assert!(match res { TypeError(_) => true, _ => false })
