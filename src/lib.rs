@@ -125,6 +125,11 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
                                       // This is inefficient as there might have been some casting
                                       // already...
                                       |i, j| Ok(LuaValue::Integer((i as isize) & (j as isize)))),
+        BinOp::BitOr => eval_arithmetic(left_op, right_op,
+                                      |i, j| Ok(LuaValue::Integer(i | j)),
+                                      // This is inefficient as there might have been some casting
+                                      // already...
+                                      |i, j| Ok(LuaValue::Integer((i as isize) | (j as isize)))),
         _ => Ok(LuaValue::Nil)
     }
 }
@@ -324,8 +329,23 @@ mod tests {
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(3.5))), &Box::new(Exp::Num(Numeral::Int(10))), &BinOp::BitAnd).unwrap();
         assert_eq!(res, LuaValue::Integer(2));
 
-        // -4 % 3 == 2
+        // IMAX & 42 == 42
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(isize::max_value()))), &Box::new(Exp::Num(Numeral::Int(42))), &BinOp::BitAnd).unwrap();
         assert_eq!(res, LuaValue::Integer(42));
+    }
+
+    #[test]
+    fn test_bitwise_or() {
+        // 1.5 | 0.5 == 1
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(1.5))), &Box::new(Exp::Num(Numeral::Float(0.5))), &BinOp::BitOr).unwrap();
+        assert_eq!(res, LuaValue::Integer(1));
+
+        // 3.5 | 10 == 2
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(3.5))), &Box::new(Exp::Num(Numeral::Int(10))), &BinOp::BitOr).unwrap();
+        assert_eq!(res, LuaValue::Integer(11));
+
+        // IMAX | 42 == IMAX
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(isize::max_value()))), &Box::new(Exp::Num(Numeral::Int(42))), &BinOp::BitOr).unwrap();
+        assert_eq!(res, LuaValue::Integer(isize::max_value()));
     }
 }
