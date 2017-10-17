@@ -185,7 +185,7 @@ pub fn eval_file(input: &[u8]) {
 mod tests {
     use super::*;
 
-    use nom_lua53::{parse_all, ParseResult, Statement, Exp};
+    use nom_lua53::Exp;
     use nom_lua53::string::StringLit;
     use nom_lua53::num::Numeral;
     use nom_lua53::op::BinOp;
