@@ -224,7 +224,14 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
                 _ => eval_expr(right_op)
             }
         },
-        _ => Ok(LuaValue::Nil)
+        BinOp::BoolOr => {
+            let left_op = eval_expr(left_op)?;
+            match left_op {
+                LuaValue::Nil => eval_expr(right_op),
+                LuaValue::Boolean(b) => if b { Ok(LuaValue::Boolean(b)) } else { eval_expr(right_op) },
+                _ => Ok(left_op)
+            }
+        }
     }
 }
 
@@ -506,5 +513,16 @@ mod tests {
         // 3.5 and 10 == 10
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(3.5))), &Box::new(Exp::Num(Numeral::Int(10))), &BinOp::BoolAnd).unwrap();
         assert_eq!(res, LuaValue::Integer(10));
+    }
+
+    #[test]
+    fn test_bool_or() {
+        // nil or 1.5 == 1.5
+        let res = eval_binary_expr(&Box::new(Exp::Nil), &Box::new(Exp::Num(Numeral::Float(1.5))), &BinOp::BoolOr).unwrap();
+        assert_eq!(res, LuaValue::Float(1.5));
+
+        // 3.5 or 10 == 3.5
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(3.5))), &Box::new(Exp::Num(Numeral::Int(10))), &BinOp::BoolOr).unwrap();
+        assert_eq!(res, LuaValue::Float(3.5));
     }
 }
