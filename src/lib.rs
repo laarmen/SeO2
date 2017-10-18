@@ -69,6 +69,23 @@ fn eval_arithmetic(left_op: &Box<Exp>, right_op: &Box<Exp>,
     }
 }
 
+fn safe_left_shift(left: isize, right: isize) -> isize {
+    if (right < 0) {
+        if (right <= -(std::mem::size_of::<isize>() as isize) * 8) {
+            0
+        } else {
+            left >> -right
+        }
+    }
+    else {
+        if (right >= (std::mem::size_of::<isize>() as isize) * 8) {
+            0
+        } else {
+            left << right
+        }
+    }
+}
+
 fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -> Result<LuaValue> {
     // We cannot yet evaluate the operands as some binary operators are used to shortcut
     // evaluation.
@@ -134,6 +151,12 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
                                       |i, j| Ok(LuaValue::Integer(i ^ j)),
                                       // See BitAnd comment
                                       |i, j| Ok(LuaValue::Integer((i as isize) ^ (j as isize)))),
+        BinOp::BitShl => eval_arithmetic(left_op, right_op,
+                                      |i, j| Ok(LuaValue::Integer(safe_left_shift(i, j))),
+                                      |i, j| Ok(LuaValue::Integer(safe_left_shift(i as isize, j as isize)))),
+        BinOp::BitShr => eval_arithmetic(left_op, right_op,
+                                      |i, j| Ok(LuaValue::Integer(safe_left_shift(i, -j))),
+                                      |i, j| Ok(LuaValue::Integer(safe_left_shift(i as isize, -(j as isize))))),
         _ => Ok(LuaValue::Nil)
     }
 }
@@ -366,5 +389,20 @@ mod tests {
         // IMAX ^ 42 == IMAX - 42
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(isize::max_value()))), &Box::new(Exp::Num(Numeral::Int(42))), &BinOp::BitXor).unwrap();
         assert_eq!(res, LuaValue::Integer(isize::max_value() - 42));
+    }
+
+    #[test]
+    fn test_bitwise_shl() {
+        // 5.5 << 1.5 == 10
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(5.5))), &Box::new(Exp::Num(Numeral::Float(1.5))), &BinOp::BitShl).unwrap();
+        assert_eq!(res, LuaValue::Integer(10));
+
+        // 3.5 << 10 == 3072
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(3.5))), &Box::new(Exp::Num(Numeral::Int(10))), &BinOp::BitShl).unwrap();
+        assert_eq!(res, LuaValue::Integer(3072));
+
+        // 1124 << -9 == 1
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1124))), &Box::new(Exp::Num(Numeral::Int(-10))), &BinOp::BitShl).unwrap();
+        assert_eq!(res, LuaValue::Integer(1));
     }
 }
