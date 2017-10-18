@@ -404,5 +404,10 @@ mod tests {
         // 1124 << -9 == 1
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1124))), &Box::new(Exp::Num(Numeral::Int(-10))), &BinOp::BitShl).unwrap();
         assert_eq!(res, LuaValue::Integer(1));
+
+        // 1124 << 1024 == 0
+        // Would overflow in Rust, not in Lua
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1124))), &Box::new(Exp::Num(Numeral::Int(1024))), &BinOp::BitShl).unwrap();
+        assert_eq!(res, LuaValue::Integer(0));
     }
 }
