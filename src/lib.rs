@@ -86,6 +86,31 @@ fn safe_left_shift(left: isize, right: isize) -> isize {
     }
 }
 
+fn eval_cmp_expr(left_op: &Box<Exp>, right_op: &Box<Exp>,
+                    nb_fn: fn(f64, f64) -> bool,
+                    str_fn: fn(String, String) -> bool) -> Result<LuaValue> {
+    let left_op = eval_expr(&left_op)?;
+    let right_op = eval_expr(&right_op)?;
+
+    match left_op {
+        LuaValue::Str(s1) => match right_op {
+            LuaValue::Str(s2) => Ok(LuaValue::Boolean(str_fn(s1, s2))),
+            _ => Err(TypeError(format!("Trying to compare {:?} and  {:?}.", LuaValue::Str(s1), right_op).to_owned()))
+        },
+        LuaValue::Integer(i1) => match right_op {
+            LuaValue::Integer(i2) => Ok(LuaValue::Boolean(nb_fn(i1 as f64, i2 as f64))),
+            LuaValue::Float(f) => Ok(LuaValue::Boolean(nb_fn(i1 as f64, f))),
+            _ => Err(TypeError(format!("Trying to compare {:?} and  {:?}.", LuaValue::Integer(i1), right_op).to_owned()))
+        },
+        LuaValue::Float(f1) => match right_op {
+            LuaValue::Integer(i) => Ok(LuaValue::Boolean(nb_fn(f1, i as f64))),
+            LuaValue::Float(f2) => Ok(LuaValue::Boolean(nb_fn(f1, f2))),
+            _ => Err(TypeError(format!("Trying to compare {:?} and  {:?}.", LuaValue::Float(f1), right_op).to_owned()))
+        },
+        _ => Err(TypeError(format!("Trying to compare {:?} and  {:?}.", left_op, right_op).to_owned()))
+    }
+}
+
 fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -> Result<LuaValue> {
     // We cannot yet evaluate the operands as some binary operators are used to shortcut
     // evaluation.
@@ -157,6 +182,7 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
         BinOp::BitShr => eval_arithmetic(left_op, right_op,
                                       |i, j| Ok(LuaValue::Integer(safe_left_shift(i, -j))),
                                       |i, j| Ok(LuaValue::Integer(safe_left_shift(i as isize, -(j as isize))))),
+        BinOp::Leq => eval_cmp_expr(left_op, right_op, |s1, s2| s1 <= s2, |i1, i2| i1 <= i2),
         _ => Ok(LuaValue::Nil)
     }
 }
@@ -409,5 +435,24 @@ mod tests {
         // Would overflow in Rust, not in Lua
         let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Int(1124))), &Box::new(Exp::Num(Numeral::Int(1024))), &BinOp::BitShl).unwrap();
         assert_eq!(res, LuaValue::Integer(0));
+    }
+
+    #[test]
+    fn test_cmp_leq() {
+        // 5.5 <= 1.5 == false
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(5.5))), &Box::new(Exp::Num(Numeral::Float(1.5))), &BinOp::Leq).unwrap();
+        assert_eq!(res, LuaValue::Boolean(false));
+
+        // 3.5 <= 10 == true
+        let res = eval_binary_expr(&Box::new(Exp::Num(Numeral::Float(3.5))), &Box::new(Exp::Num(Numeral::Int(10))), &BinOp::Leq).unwrap();
+        assert_eq!(res, LuaValue::Boolean(true));
+
+        // abc <= bcd == true
+        let res = eval_binary_expr(&Box::new(Exp::Str(StringLit(Cow::from(&b"abc"[..])))), &Box::new(Exp::Str(StringLit(Cow::from(&b"bcd"[..])))), &BinOp::Leq).unwrap();
+        assert_eq!(res, LuaValue::Boolean(true));
+
+        // abc <= bcd == true
+        let res = eval_binary_expr(&Box::new(Exp::Str(StringLit(Cow::from(&b"abc"[..])))), &Box::new(Exp::Num(Numeral::Float(1.0))), &BinOp::Leq).unwrap_err();
+        assert!(match res { LuaError::TypeError(_) => true, _ => false });
     }
 }
