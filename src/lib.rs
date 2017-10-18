@@ -211,6 +211,11 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
                                       |i, j| Ok(LuaValue::Integer(safe_left_shift(i, -j))),
                                       |i, j| Ok(LuaValue::Integer(safe_left_shift(i as isize, -(j as isize))))),
         BinOp::Leq => eval_cmp_expr(left_op, right_op, |s1, s2| s1 <= s2, |i1, i2| i1 <= i2),
+        BinOp::Lt => eval_cmp_expr(left_op, right_op, |s1, s2| s1 < s2, |i1, i2| i1 < i2),
+        BinOp::Geq => eval_cmp_expr(left_op, right_op, |s1, s2| s1 >= s2, |i1, i2| i1 >= i2),
+        BinOp::Gt => eval_cmp_expr(left_op, right_op, |s1, s2| s1 > s2, |i1, i2| i1 > i2),
+        BinOp::Eq => Ok(LuaValue::Boolean(eval_expr(left_op)? == eval_expr(right_op)?)),
+        BinOp::Neq => Ok(LuaValue::Boolean(eval_expr(left_op)? != eval_expr(right_op)?)),
         _ => Ok(LuaValue::Nil)
     }
 }
