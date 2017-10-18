@@ -70,15 +70,15 @@ fn eval_arithmetic(left_op: &Box<Exp>, right_op: &Box<Exp>,
 }
 
 fn safe_left_shift(left: isize, right: isize) -> isize {
-    if (right < 0) {
-        if (right <= -(std::mem::size_of::<isize>() as isize) * 8) {
+    if right < 0 {
+        if right <= -(std::mem::size_of::<isize>() as isize) * 8 {
             0
         } else {
             left >> -right
         }
     }
     else {
-        if (right >= (std::mem::size_of::<isize>() as isize) * 8) {
+        if right >= (std::mem::size_of::<isize>() as isize) * 8 {
             0
         } else {
             left << right
