@@ -47,6 +47,33 @@ fn string_to_num_coercion(val: LuaValue) -> LuaValue {
     }
 }
 
+fn concatenation_operator(left_op: &Box<Exp>, right_op: &Box<Exp>) -> Result<LuaValue> {
+    let left_op = string_to_num_coercion(eval_expr(&left_op)?);
+    let right_op = string_to_num_coercion(eval_expr(&right_op)?);
+
+    match left_op {
+        LuaValue::Integer(i) => match right_op {
+            LuaValue::Integer(j) => Ok(LuaValue::Str(format!("{}{}", i, j))),
+            LuaValue::Float(f) => Ok(LuaValue::Str(format!("{}{}", i, f))),
+            LuaValue::Str(s) => Ok(LuaValue::Str(format!("{}{}", i, s))),
+            _ => Err(TypeError("Trying to do concatenation on non-string nor numerical values.".to_owned()))
+        },
+        LuaValue::Float(ff) => match right_op {
+            LuaValue::Integer(j) => Ok(LuaValue::Str(format!("{}{}", ff, j))),
+            LuaValue::Float(f) => Ok(LuaValue::Str(format!("{}{}", ff, f))),
+            LuaValue::Str(s) => Ok(LuaValue::Str(format!("{}{}", ff, s))),
+            _ => Err(TypeError("Trying to do concatenation on non-string nor numerical values.".to_owned()))
+        },
+        LuaValue::Str(ss) => match right_op {
+            LuaValue::Integer(j) => Ok(LuaValue::Str(format!("{}{}", ss, j))),
+            LuaValue::Float(f) => Ok(LuaValue::Str(format!("{}{}", ss, f))),
+            LuaValue::Str(s) => Ok(LuaValue::Str(format!("{}{}", ss, s))),
+            _ => Err(TypeError("Trying to do concatenation on non-string nor numerical values.".to_owned()))
+        },
+        _ => Err(TypeError("Trying to do concatenation on non-string nor numerical values.".to_owned()))
+    }
+}
+
 fn eval_arithmetic(left_op: &Box<Exp>, right_op: &Box<Exp>,
                    integer: fn(isize, isize) -> Result<LuaValue>,
                    float: fn(f64, f64) -> Result<LuaValue>) -> Result<LuaValue> {
@@ -115,6 +142,7 @@ fn eval_binary_expr(left_op: &Box<Exp>, right_op: &Box<Exp>, operator: &BinOp) -
     // We cannot yet evaluate the operands as some binary operators are used to shortcut
     // evaluation.
     match *operator {
+        BinOp::Concat => concatenation_operator(left_op, right_op),
         BinOp::Plus => eval_arithmetic(left_op, right_op,
                                        |i, j| Ok(LuaValue::Integer(i+j)),
                                        |i, j| Ok(LuaValue::Float(i+j))),
