@@ -1,7 +1,6 @@
 extern crate nom_lua53;
 
-use nom_lua53::{parse_all, ParseResult, Statement, Exp};
-use nom_lua53::op::BinOp;
+use nom_lua53::{parse_all, ParseResult, Statement};
 
 mod expression;
 
@@ -20,8 +19,6 @@ pub enum LuaError {
     TypeError(String),
     ArithmeticError(String),
 }
-
-use LuaError::*;
 
 type Result<T> = std::result::Result<T, LuaError>;
 

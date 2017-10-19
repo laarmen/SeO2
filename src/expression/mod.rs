@@ -1,5 +1,9 @@
-mod operator;
-use super::*;
+mod binop;
+
+use super::{LuaError, LuaValue, Result};
+
+use nom_lua53;
+use std;
 
 // What do we say? We say "Merci Basile!"
 fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
@@ -25,16 +29,16 @@ fn string_to_num_coercion(val: LuaValue) -> LuaValue {
     }
 }
 
-pub fn eval_expr(expr: &Exp) -> Result<LuaValue> {
+pub fn eval_expr(expr: &nom_lua53::Exp) -> Result<LuaValue> {
     match *expr {
-        Exp::Nil => Ok(LuaValue::Nil),
-        Exp::Bool(val) => Ok(LuaValue::Boolean(val)),
-        Exp::Num(val) => Ok(match val {
+        nom_lua53::Exp::Nil => Ok(LuaValue::Nil),
+        nom_lua53::Exp::Bool(val) => Ok(LuaValue::Boolean(val)),
+        nom_lua53::Exp::Num(val) => Ok(match val {
             nom_lua53::num::Numeral::Float(fl) => LuaValue::Float(fl),
             nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
         }),
-        Exp::BinExp(ref left, ref op, ref right) => operator::eval_binary_expr(left, right, &op),
-        Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
+        nom_lua53::Exp::BinExp(ref left, ref op, ref right) => binop::eval_binary_expr(left, right, &op),
+        nom_lua53::Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
         _ => Ok(LuaValue::Nil),
     }
 }

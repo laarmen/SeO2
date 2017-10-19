@@ -1,4 +1,8 @@
 use super::*;
+use super::LuaError::*;
+
+use nom_lua53::op::BinOp;
+use nom_lua53::Exp;
 
 fn eval_cmp_expr(left_op: &Box<Exp>, right_op: &Box<Exp>,
                     nb_fn: fn(f64, f64) -> bool,
@@ -411,7 +415,7 @@ mod tests {
 
         // abc <= bcd == true
         let res = eval_binary_expr(&Box::new(Exp::Str(StringLit(Cow::from(&b"abc"[..])))), &Box::new(Exp::Num(Numeral::Float(1.0))), &BinOp::Leq).unwrap_err();
-        assert!(match res { LuaError::TypeError(_) => true, _ => false });
+        assert!(match res { TypeError(_) => true, _ => false });
     }
 
     #[test]
