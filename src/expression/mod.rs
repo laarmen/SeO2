@@ -1,4 +1,5 @@
 mod binop;
+mod unop;
 
 use super::{LuaError, LuaValue, Result};
 
@@ -38,7 +39,16 @@ pub fn eval_expr(expr: &nom_lua53::Exp) -> Result<LuaValue> {
             nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
         }),
         nom_lua53::Exp::BinExp(ref left, ref op, ref right) => binop::eval_binary_expr(left, right, &op),
+        nom_lua53::Exp::UnExp(ref operator, ref operand) => unop::eval_unary_expr(operand, &operator),
         nom_lua53::Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
         _ => Ok(LuaValue::Nil),
+    }
+}
+
+pub fn boolean_coercion(val: &LuaValue) -> bool {
+    match *val {
+        LuaValue::Nil => false,
+        LuaValue::Boolean(b) => b,
+        _ => true
     }
 }
