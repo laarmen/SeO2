@@ -52,3 +52,20 @@ pub fn boolean_coercion(val: &LuaValue) -> bool {
         _ => true
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn test_boolean_coercion() {
+        // 1. + -1. == 0.
+        assert!(boolean_coercion(&LuaValue::Str("".to_owned())));
+        assert!(boolean_coercion(&LuaValue::Integer(0)));
+        assert!(boolean_coercion(&LuaValue::Integer(2)));
+        assert!(!boolean_coercion(&LuaValue::Nil));
+        assert!(!boolean_coercion(&LuaValue::Boolean(false)));
+        assert!(boolean_coercion(&LuaValue::Boolean(true)));
+    }
+}
+
