@@ -11,7 +11,7 @@ fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
     return String::from_utf8_lossy(&(string.0)).to_string();
 }
 
-fn string_to_num_coercion(val: LuaValue) -> LuaValue {
+fn num_coercion(val: LuaValue) -> LuaValue {
     match val {
         LuaValue::Str(s) => {
             let parsed =  str::parse::<isize>(&s);
@@ -59,7 +59,6 @@ mod tests {
 
     #[test]
     fn test_boolean_coercion() {
-        // 1. + -1. == 0.
         assert!(boolean_coercion(&LuaValue::Str("".to_owned())));
         assert!(boolean_coercion(&LuaValue::Integer(0)));
         assert!(boolean_coercion(&LuaValue::Integer(2)));

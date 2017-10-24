@@ -30,8 +30,8 @@ fn eval_cmp_expr(left_op: &Box<Exp>, right_op: &Box<Exp>,
 }
 
 fn concatenation_operator(left_op: &Box<Exp>, right_op: &Box<Exp>) -> Result<LuaValue> {
-    let left_op = string_to_num_coercion(eval_expr(&left_op)?);
-    let right_op = string_to_num_coercion(eval_expr(&right_op)?);
+    let left_op = num_coercion(eval_expr(&left_op)?);
+    let right_op = num_coercion(eval_expr(&right_op)?);
 
     match left_op {
         LuaValue::Integer(i) => match right_op {
@@ -77,8 +77,8 @@ fn eval_arithmetic(left_op: &Box<Exp>, right_op: &Box<Exp>,
                    integer: fn(isize, isize) -> Result<LuaValue>,
                    float: fn(f64, f64) -> Result<LuaValue>) -> Result<LuaValue> {
 
-    let left_op = string_to_num_coercion(eval_expr(&left_op)?);
-    let right_op = string_to_num_coercion(eval_expr(&right_op)?);
+    let left_op = num_coercion(eval_expr(&left_op)?);
+    let right_op = num_coercion(eval_expr(&right_op)?);
 
     match left_op {
         LuaValue::Integer(i) => match right_op {
