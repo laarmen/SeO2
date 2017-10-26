@@ -14,6 +14,12 @@ pub fn eval_unary_expr(operand: &Box<Exp>, operator: &UnOp) -> Result<LuaValue> 
                 LuaValue::Float(f) => Ok(LuaValue::Float(-f)),
                 _ => Err(TypeError("Trying to do arithmetic on a non-numerical value.".to_owned()))
             }
+        },
+        UnOp::Length => {
+            match operand {
+                LuaValue::Str(s) => Ok(LuaValue::Integer(s.len() as isize)),
+                _ => Err(TypeError("Trying to do get size on an unsupported type.".to_owned()))
+            }
         }
         _ => Ok(LuaValue::Nil)
     }
@@ -63,6 +69,15 @@ mod tests {
 
         let res = eval_unary_expr(&Box::new(Exp::Nil), &UnOp::BoolNot).unwrap();
         assert_eq!(res, LuaValue::Boolean(true));
+    }
+
+    #[test]
+    fn test_bool_length() {
+        let res = eval_unary_expr(&Box::new(Exp::Str(StringLit(Cow::from(&b"1234"[..])))), &UnOp::Length).unwrap();
+        assert_eq!(res, LuaValue::Integer(4));
+
+        let res = eval_unary_expr(&Box::new(Exp::Bool(true)), &UnOp::Length).unwrap_err();
+        assert!(match res { TypeError(_) => true, _ => false });
     }
 }
 
