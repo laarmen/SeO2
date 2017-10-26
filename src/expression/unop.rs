@@ -20,8 +20,14 @@ pub fn eval_unary_expr(operand: &Box<Exp>, operator: &UnOp) -> Result<LuaValue> 
                 LuaValue::Str(s) => Ok(LuaValue::Integer(s.len() as isize)),
                 _ => Err(TypeError("Trying to do get size on an unsupported type.".to_owned()))
             }
+        },
+        UnOp::BitNot => {
+            match num_coercion(operand) {
+                LuaValue::Integer(i) => Ok(LuaValue::Integer(!i)),
+                LuaValue::Float(f) => Ok(LuaValue::Integer(!(f as isize))),
+                _ => Err(TypeError("Trying to do bitwise inversion on a non-numerical value.".to_owned()))
+            }
         }
-        _ => Ok(LuaValue::Nil)
     }
 }
 
@@ -77,6 +83,15 @@ mod tests {
         assert_eq!(res, LuaValue::Integer(4));
 
         let res = eval_unary_expr(&Box::new(Exp::Bool(true)), &UnOp::Length).unwrap_err();
+        assert!(match res { TypeError(_) => true, _ => false });
+    }
+
+    #[test]
+    fn test_bitwise_inversion() {
+        let res = eval_unary_expr(&Box::new(Exp::Num(Numeral::Int(0))), &UnOp::BitNot).unwrap();
+        assert_eq!(res, LuaValue::Integer(-1));
+
+        let res = eval_unary_expr(&Box::new(Exp::Bool(true)), &UnOp::BitNot).unwrap_err();
         assert!(match res { TypeError(_) => true, _ => false });
     }
 }
