@@ -1,7 +1,23 @@
 use std::collections::HashMap;
 use std::rc::Rc;
-use std::cell::RefCell;
+use std::cell::{Cell, RefCell};
 use std::hash::{Hash, Hasher};
+
+#[derive(Debug)]
+pub struct LuaState {
+    last_id: Cell<usize>
+}
+
+impl LuaState {
+    pub fn new() -> LuaState {
+        return LuaState { last_id: Cell::new(0) }
+    }
+
+    pub fn get_ref_id(&self) -> usize {
+        self.last_id.set(self.last_id.get()+1);
+        return self.last_id.get();
+    }
+}
 
 #[derive(Debug,Eq)]
 pub struct LuaTable {

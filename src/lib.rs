@@ -14,6 +14,7 @@ pub enum LuaError {
 type Result<T> = std::result::Result<T, LuaError>;
 
 pub fn eval_file(input: &[u8]) {
+    let ctx = types::LuaState::new();
     match parse_all(input) {
         ParseResult::Done(blk) => {
             for stmt in blk.stmts {
@@ -22,7 +23,7 @@ pub fn eval_file(input: &[u8]) {
                     Statement::LVarAssign(ass) => {
                         let values = ass.vals.expect("There should be some values. Why isn't there any value?!");
                         for (var, val) in ass.vars.iter().zip(values.iter()) {
-                            let computed_value = expression::eval_expr(val);
+                            let computed_value = expression::eval_expr(val, &ctx);
                             println!("Assigning {:?} to {:?}", computed_value, var);
                         }
                     }

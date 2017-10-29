@@ -2,7 +2,7 @@ mod binop;
 mod unop;
 
 use super::{LuaError, Result};
-use super::types::LuaValue;
+use super::types::{LuaValue, LuaTable, LuaState};
 
 use nom_lua53;
 use std;
@@ -31,7 +31,7 @@ fn num_coercion(val: LuaValue) -> LuaValue {
     }
 }
 
-pub fn eval_expr(expr: &nom_lua53::Exp) -> Result<LuaValue> {
+pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
     match *expr {
         nom_lua53::Exp::Nil => Ok(LuaValue::Nil),
         nom_lua53::Exp::Bool(val) => Ok(LuaValue::Boolean(val)),
@@ -39,8 +39,8 @@ pub fn eval_expr(expr: &nom_lua53::Exp) -> Result<LuaValue> {
             nom_lua53::num::Numeral::Float(fl) => LuaValue::Float(fl),
             nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
         }),
-        nom_lua53::Exp::BinExp(ref left, ref op, ref right) => binop::eval_binary_expr(left, right, &op),
-        nom_lua53::Exp::UnExp(ref operator, ref operand) => unop::eval_unary_expr(operand, &operator),
+        nom_lua53::Exp::BinExp(ref left, ref op, ref right) => binop::eval_binary_expr(left, right, &op, ctx),
+        nom_lua53::Exp::UnExp(ref operator, ref operand) => unop::eval_unary_expr(operand, &operator, ctx),
         nom_lua53::Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
         _ => Ok(LuaValue::Nil),
     }
