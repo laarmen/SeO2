@@ -2,7 +2,7 @@ mod binop;
 mod unop;
 
 use super::{LuaError, Result};
-use super::types::{LuaValue, LuaTable};
+use super::types::LuaValue;
 
 use nom_lua53;
 use std;

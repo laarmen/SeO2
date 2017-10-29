@@ -18,6 +18,7 @@ pub fn eval_unary_expr(operand: &Box<Exp>, operator: &UnOp) -> Result<LuaValue> 
         UnOp::Length => {
             match operand {
                 LuaValue::Str(s) => Ok(LuaValue::Integer(s.len() as isize)),
+                LuaValue::Table(t) => Ok(LuaValue::Integer(t.sequence_border() as isize)),
                 _ => Err(TypeError("Trying to do get size on an unsupported type.".to_owned()))
             }
         },

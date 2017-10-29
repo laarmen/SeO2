@@ -1,5 +1,6 @@
 use std::collections::HashMap;
 use std::rc::Rc;
+use std::cell::RefCell;
 use std::hash::{Hash, Hasher};
 
 #[derive(Debug,Eq)]
@@ -7,6 +8,12 @@ pub struct LuaTable {
     ref_id: usize,
     map: HashMap<LuaValue, RefCell<LuaValue>>,
     vector: Vec<RefCell<LuaValue>>,
+}
+
+impl LuaTable {
+    pub fn sequence_border(&self) -> usize {
+        return self.vector.len();
+    }
 }
 
 impl PartialEq for LuaTable {
@@ -28,7 +35,7 @@ pub enum LuaValue {
     Float(f64),
     Boolean(bool),
     Str(String),
-    Table(Rc<LuaTable>),
+    Table(Rc<LuaTable>)
 }
 
 // This trait is there to say that the equality is symmetric, reflexive and transitive,
