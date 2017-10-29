@@ -5,8 +5,8 @@ use std::hash::{Hash, Hasher};
 #[derive(Debug,Eq)]
 pub struct LuaTable {
     ref_id: usize,
-    map: HashMap<LuaValue, LuaValue>,
-    vector: HashMap<LuaValue, LuaValue>,
+    map: HashMap<LuaValue, RefCell<LuaValue>>,
+    vector: Vec<RefCell<LuaValue>>,
 }
 
 impl PartialEq for LuaTable {
