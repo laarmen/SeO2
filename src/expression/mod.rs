@@ -6,6 +6,7 @@ use super::types::{LuaValue, LuaTable, LuaState};
 
 use nom_lua53;
 use std;
+use std::rc::Rc;
 
 // What do we say? We say "Merci Basile!"
 fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
@@ -42,8 +43,14 @@ pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
         nom_lua53::Exp::BinExp(ref left, ref op, ref right) => binop::eval_binary_expr(left, right, &op, ctx),
         nom_lua53::Exp::UnExp(ref operator, ref operand) => unop::eval_unary_expr(operand, &operator, ctx),
         nom_lua53::Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
+        nom_lua53::Exp::Table(ref t) => eval_inline_table(t, ctx),
         _ => Ok(LuaValue::Nil),
     }
+}
+
+fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) ->  Result<LuaValue> {
+    let ret = Rc::new(LuaTable::new(ctx));
+    return Ok(LuaValue::Table(ret));
 }
 
 pub fn boolean_coercion(val: &LuaValue) -> bool {

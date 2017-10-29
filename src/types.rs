@@ -30,6 +30,14 @@ impl LuaTable {
     pub fn sequence_border(&self) -> usize {
         return self.vector.len();
     }
+
+    pub fn new(ctx: &LuaState) -> LuaTable {
+        LuaTable {
+             ref_id: ctx.get_ref_id(),
+             map: HashMap::new(),
+             vector: Vec::new(),
+              }
+    }
 }
 
 impl PartialEq for LuaTable {
