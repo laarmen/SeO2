@@ -6,7 +6,6 @@ use super::types::{LuaValue, LuaTable, LuaState};
 
 use nom_lua53;
 use std;
-use std::rc::Rc;
 
 // What do we say? We say "Merci Basile!"
 fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
@@ -49,7 +48,26 @@ pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
 }
 
 fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) ->  Result<LuaValue> {
-    let ret = Rc::new(LuaTable::new(ctx));
+    // First, we count how many positional epxressions there are to only do one allocation.
+    let mut sequence_count = 0;
+    for field in src.into_iter() {
+        match field {
+            &nom_lua53::Field::PosAssign(_) => sequence_count = sequence_count+1,
+            _ => ()
+        }
+    }
+
+    let ret = LuaTable::with_capacity(ctx.get_ref_id(), sequence_count);
+    let mut next_index = 1;
+    for field in src.into_iter() {
+        match *field {
+            nom_lua53::Field::PosAssign(ref exp) => {
+                ret.set(&LuaValue::Integer(next_index), &eval_expr(exp, ctx)?)?;
+                next_index = next_index+1;
+            },
+            _ => ()
+        }
+    }
     return Ok(LuaValue::Table(ret));
 }
 

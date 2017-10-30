@@ -8,7 +8,8 @@ mod types;
 #[derive(PartialEq,Eq,Debug)]
 pub enum LuaError {
     TypeError(String),
-    ArithmeticError(String),
+        IndexError(String),
+        ArithmeticError(String),
 }
 
 type Result<T> = std::result::Result<T, LuaError>;
