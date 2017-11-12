@@ -3,16 +3,33 @@ use std::rc::Rc;
 use std::cell::{Cell, RefCell};
 use std::hash::{Hash, Hasher};
 
+use std::collections::vec_deque::VecDeque;
+use std::collections::BTreeMap;
+
 use super::{Result, LuaError};
+
+type Scope = Rc<BTreeMap<String, LuaValue>>;
 
 #[derive(Debug)]
 pub struct LuaState {
-last_id: Cell<usize>
+     last_id: Cell<usize>,
+     global: LuaTable,
+     scope_stack: VecDeque<Scope>,
 }
 
 impl LuaState {
     pub fn new() -> LuaState {
-        return LuaState { last_id: Cell::new(0) }
+        let global = LuaTable::new(0);
+        let mut initial_scope = Rc::new(BTreeMap::new());
+        Rc::get_mut(&mut initial_scope).unwrap().insert("_ENV".to_owned(), LuaValue::Table(global.clone()));
+
+        let mut scope_stack = VecDeque::new();
+        scope_stack.push_back(initial_scope);
+        return LuaState {
+            last_id: Cell::new(0),
+            global,
+            scope_stack
+        }
     }
 
     pub fn get_ref_id(&self) -> usize {
