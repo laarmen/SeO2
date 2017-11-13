@@ -71,8 +71,8 @@ impl LuaTable {
              content: Rc::new(
                  CoreTable {
                       ref_id: id,
-                       map: RefCell::new(HashMap::new()),
-                        vector: RefCell::new(Vec::new()) }) }
+                      map: RefCell::new(HashMap::new()),
+                      vector: RefCell::new(Vec::new()) }) }
     }
 
     pub fn with_capacity(id: usize, capacity: usize) -> LuaTable {

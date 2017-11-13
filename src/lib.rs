@@ -11,6 +11,7 @@ pub enum LuaError {
     TypeError(String),
     IndexError(String),
     ArithmeticError(String),
+    NotImplementedError,
 }
 
 type Result<T> = std::result::Result<T, LuaError>;
@@ -33,8 +34,8 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) {
         }
         _ => {}
     }
-
 }
+
 pub fn eval_file(input: &[u8]) {
     let mut ctx = types::LuaState::new();
     match parse_all(input) {

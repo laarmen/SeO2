@@ -43,7 +43,10 @@ pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
         nom_lua53::Exp::UnExp(ref operator, ref operand) => unop::eval_unary_expr(operand, &operator, ctx),
         nom_lua53::Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
         nom_lua53::Exp::Table(ref t) => eval_inline_table(t, ctx),
-        _ => Ok(LuaValue::Nil),
+        nom_lua53::Exp::Ellipses => Err(LuaError::NotImplementedError),
+        nom_lua53::Exp::FuncCall(_) => Err(LuaError::NotImplementedError),
+        nom_lua53::Exp::Lambda(_) => Err(LuaError::NotImplementedError),
+        nom_lua53::Exp::PrefixExp(_) => Err(LuaError::NotImplementedError),
     }
 }
 
