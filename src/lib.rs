@@ -34,6 +34,25 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()
             }
         }
         &Statement::Assignment(ref ass) => {
+            let mut values = Vec::with_capacity(ass.vals.len());
+            for exp in ass.vals.iter() {
+                values.push(expression::eval_expr(&exp, &ctx)?);
+            }
+
+            for (prefexp, val) in ass.vars.iter().zip(values.drain(..)) {
+                if prefexp.suffix_chain.is_empty() {
+                    match prefexp.prefix {
+                        nom_lua53::ExpOrVarName::Exp(_) => return Err(LuaError::OtherError("This affectation doesn't make much sense...".to_owned())),
+                        nom_lua53::ExpOrVarName::VarName(var) => {
+                            let var = var_to_string(&var);
+                            if let Some(scope) = ctx.resolve_name_mut(&var) {
+                                Rc::get_mut(scope).unwrap().insert(var, val);
+                            }
+                        }
+                    }
+
+                }
+            }
             println!("Assigning {:?} to {:?}", ass.vals, ass.vars);
         }
         _ => {}
