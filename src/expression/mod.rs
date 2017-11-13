@@ -77,8 +77,7 @@ fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) ->  Result<LuaVa
                 let key = var_to_string(key);
                 let value = eval_expr(value, ctx)?;
                 ret.set(&LuaValue::Str(key), &value)?;
-            },
-            _ => ()
+            }
         }
     }
     return Ok(LuaValue::Table(ret));
@@ -106,4 +105,3 @@ mod tests {
         assert!(boolean_coercion(&LuaValue::Boolean(true)));
     }
 }
-
