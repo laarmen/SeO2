@@ -1,7 +1,7 @@
 mod binop;
 mod unop;
 
-use super::{LuaError, Result};
+use super::{LuaError, Result, var_to_string};
 use super::types::{LuaValue, LuaTable, LuaState};
 
 use nom_lua53;
@@ -59,11 +59,21 @@ fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) ->  Result<LuaVa
 
     let ret = LuaTable::with_capacity(ctx.get_ref_id(), sequence_count);
     let mut next_index = 1;
-    for field in src.into_iter() {
+    for field in src.iter() {
         match *field {
             nom_lua53::Field::PosAssign(ref exp) => {
                 ret.set(&LuaValue::Integer(next_index), &eval_expr(exp, ctx)?)?;
                 next_index = next_index+1;
+            },
+            nom_lua53::Field::ExpAssign(ref key, ref value) => {
+                let key = eval_expr(key, ctx)?;
+                let value = eval_expr(value, ctx)?;
+                ret.set(&key, &value)?;
+            },
+            nom_lua53::Field::NameAssign(ref key, ref value) => {
+                let key = var_to_string(key);
+                let value = eval_expr(value, ctx)?;
+                ret.set(&LuaValue::Str(key), &value)?;
             },
             _ => ()
         }

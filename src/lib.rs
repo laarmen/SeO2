@@ -1,6 +1,7 @@
 extern crate nom_lua53;
 
 use nom_lua53::{parse_all, ParseResult, Statement};
+use nom_lua53::name::VarName;
 
 mod expression;
 mod types;
@@ -13,6 +14,10 @@ pub enum LuaError {
 }
 
 type Result<T> = std::result::Result<T, LuaError>;
+
+pub fn var_to_string(var: &VarName) -> String {
+    String::from_utf8_lossy(var.0).to_string()
+}
 
 pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) {
     match stmt {
