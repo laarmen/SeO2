@@ -13,6 +13,7 @@ pub enum LuaError {
     TypeError(String),
     IndexError(String),
     ArithmeticError(String),
+    OtherError(String),
     NotImplementedError,
 }
 
@@ -22,7 +23,7 @@ pub fn var_to_string(var: &VarName) -> String {
     String::from_utf8_lossy(var.0).to_string()
 }
 
-pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) {
+pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()>{
     match stmt {
         &Statement::LVarAssign(ref ass) => {
             let values = ass.vals.as_ref().expect("There should be some values. Why isn't there any value?!");
@@ -37,15 +38,16 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) {
         }
         _ => {}
     }
+    return Ok(());
 }
 
-pub fn eval_file(input: &[u8]) {
+pub fn eval_file(input: &[u8]) -> Result<()>{
     let mut ctx = types::LuaState::new();
     match parse_all(input) {
         ParseResult::Done(blk) => {
             for stmt in blk.stmts {
                 println!("{:?}", stmt);
-                parse_statement(&stmt, &mut ctx)
+                parse_statement(&stmt, &mut ctx)?;
             }
             println!("{:?}", ctx.get_local_scope());
         }
@@ -54,5 +56,6 @@ pub fn eval_file(input: &[u8]) {
             println!("Error. statements == {:#?}", ss);
             println!("rest == '{}'", String::from_utf8_lossy(rest));
         }
-    }
+    };
+    return Ok(());
 }
