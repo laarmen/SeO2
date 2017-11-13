@@ -3,6 +3,8 @@ extern crate nom_lua53;
 use nom_lua53::{parse_all, ParseResult, Statement};
 use nom_lua53::name::VarName;
 
+use std::rc::Rc;
+
 mod expression;
 mod types;
 
@@ -26,7 +28,8 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) {
             let values = ass.vals.as_ref().expect("There should be some values. Why isn't there any value?!");
             for (var, val) in ass.vars.iter().zip(values.iter()) {
                 let computed_value = expression::eval_expr(val, &ctx);
-                println!("Assigning {:?} to {:?}", computed_value, var);
+                let local_scope = ctx.get_mutable_local_scope().unwrap();
+                Rc::get_mut(local_scope).unwrap().insert(var_to_string(var), computed_value.unwrap());
             }
         }
         &Statement::Assignment(ref ass) => {
@@ -44,6 +47,7 @@ pub fn eval_file(input: &[u8]) {
                 println!("{:?}", stmt);
                 parse_statement(&stmt, &mut ctx)
             }
+            println!("{:?}", ctx.get_local_scope());
         }
 
         ParseResult::Error(rest, ss) => {

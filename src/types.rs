@@ -8,7 +8,7 @@ use std::collections::BTreeMap;
 
 use super::{Result, LuaError};
 
-type Scope = Rc<BTreeMap<String, LuaValue>>;
+pub type Scope = Rc<BTreeMap<String, LuaValue>>;
 
 #[derive(Debug)]
 pub struct LuaState {
@@ -19,22 +19,50 @@ pub struct LuaState {
 
 impl LuaState {
     pub fn new() -> LuaState {
-        let global = LuaTable::new(0);
-        let mut initial_scope = Rc::new(BTreeMap::new());
-        Rc::get_mut(&mut initial_scope).unwrap().insert("_ENV".to_owned(), LuaValue::Table(global.clone()));
 
-        let mut scope_stack = VecDeque::new();
-        scope_stack.push_back(initial_scope);
-        return LuaState {
+        let mut ret =  LuaState {
             last_id: Cell::new(0),
-            global,
-            scope_stack
-        }
+            global: LuaTable::new(0),
+            scope_stack: VecDeque::new()
+        };
+
+        ret.push_scope();
+        let table = LuaValue::Table(ret.global.clone());
+        Rc::get_mut(ret.get_mutable_local_scope().unwrap()).unwrap().insert("_ENV".to_owned(), table);
+        return ret;
     }
 
     pub fn get_ref_id(&self) -> usize {
         self.last_id.set(self.last_id.get()+1);
         return self.last_id.get();
+    }
+
+    pub fn resolve_name(&self, name: &String) -> Option<&Scope> {
+        for scope in self.scope_stack.iter() {
+            if scope.contains_key(name) {
+                return Some(scope)
+            }
+        }
+        return None
+    }
+
+    pub fn get_local_scope(&self) -> Option<&Scope> {
+        self.scope_stack.front()
+    }
+
+    pub fn get_mutable_local_scope(&mut self) -> Option<&mut Scope> {
+        self.scope_stack.front_mut()
+    }
+
+    pub fn push_scope(&mut self) {
+        self.scope_stack.push_front(Rc::new(BTreeMap::new()));
+    }
+
+    pub fn pop_scope(&mut self) {
+        if self.scope_stack.is_empty() {
+            panic!("No scope to pop!")
+        }
+        self.scope_stack.pop_front();
     }
 }
 
