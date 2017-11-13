@@ -46,6 +46,15 @@ impl LuaState {
         return None
     }
 
+    pub fn resolve_name_mut(&mut self, name: &String) -> Option<&mut Scope> {
+        for scope in self.scope_stack.iter_mut() {
+            if scope.contains_key(name) {
+                return Some(scope)
+            }
+        }
+        return None
+    }
+
     pub fn get_local_scope(&self) -> Option<&Scope> {
         self.scope_stack.front()
     }
