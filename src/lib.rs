@@ -40,7 +40,12 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()
             }
 
             for (prefexp, val) in ass.vars.iter().zip(values.drain(..)) {
-                println!("Temp: Assigning {:?} to {:?}", prefexp, val);
+                let assignment = expression::prefixexp::resolve_prefix_expr(
+                    &prefexp.prefix,
+                    &prefexp.suffix_chain,
+                    ctx,
+                )?;
+                assignment.environment.set(&assignment.index, &val)?;
             }
             println!("Assigning {:?} to {:?}", ass.vals, ass.vars);
         }

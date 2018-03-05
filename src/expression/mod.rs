@@ -1,5 +1,6 @@
 mod binop;
 mod unop;
+pub mod prefixexp;
 
 use super::{var_to_string, LuaError, Result};
 use super::types::{LuaState, LuaTable, LuaValue};
@@ -47,10 +48,12 @@ pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
         }
         nom_lua53::Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
         nom_lua53::Exp::Table(ref t) => eval_inline_table(t, ctx),
+        nom_lua53::Exp::PrefixExp(ref e) => {
+            prefixexp::eval_prefix_expr(&e.prefix, &e.suffix_chain, ctx)
+        }
         nom_lua53::Exp::Ellipses => Err(LuaError::NotImplementedError),
         nom_lua53::Exp::FuncCall(_) => Err(LuaError::NotImplementedError),
         nom_lua53::Exp::Lambda(_) => Err(LuaError::NotImplementedError),
-        nom_lua53::Exp::PrefixExp(_) => Err(LuaError::NotImplementedError),
     }
 }
 

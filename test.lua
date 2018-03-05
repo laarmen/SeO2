@@ -6,4 +6,5 @@ local test2 = 12.3 - 1.5
 
 local test3 = { a=2 }
 test2 = 25
+test4 = test3["a"]
 return 11
