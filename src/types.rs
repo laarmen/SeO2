@@ -4,11 +4,10 @@ use std::cell::{Cell, RefCell};
 use std::hash::{Hash, Hasher};
 
 use std::collections::vec_deque::VecDeque;
-use std::collections::BTreeMap;
 
 use super::{LuaError, Result};
 
-pub type Scope = Rc<BTreeMap<String, LuaValue>>;
+pub type Scope = LuaTable;
 
 #[derive(Debug)]
 pub struct LuaState {
@@ -27,7 +26,9 @@ impl LuaState {
 
         ret.push_scope();
         let table = LuaValue::Table(ret.global.clone());
-        Rc::get_mut(ret.get_mutable_local_scope().unwrap()).unwrap().insert("_ENV".to_owned(), table);
+        ret.get_local_scope()
+            .unwrap()
+            .set_string("_ENV".to_owned(), &table);
         return ret;
     }
 
@@ -63,7 +64,8 @@ impl LuaState {
     }
 
     pub fn push_scope(&mut self) {
-        self.scope_stack.push_front(Rc::new(BTreeMap::new()));
+        let id = self.get_ref_id();
+        self.scope_stack.push_front(LuaTable::new(id));
     }
 
     pub fn pop_scope(&mut self) {
@@ -188,6 +190,55 @@ impl LuaTable {
         let idx = (idx - 1) as usize;
         if idx == seq.len() {
             seq.push(value.clone());
+        } else {
+            seq[idx] = value.clone();
+        }
+    }
+
+    pub fn set_string(&self, key: String, value: &LuaValue) {
+        self.map_set(&LuaValue::Str(key), value)
+    }
+    pub fn get_string(&self, key: String) -> LuaValue {
+        self.map_get(&LuaValue::Str(key))
+    }
+    pub fn get(&self, key: &LuaValue) -> LuaValue {
+        match key {
+            &LuaValue::Nil => LuaValue::Nil,
+            &LuaValue::Float(ref f) => {
+                if f.is_nan() {
+                    LuaValue::Nil
+                } else {
+                    let round = f.round();
+                    if round == *f {
+                        self.get(&LuaValue::Integer(round as isize))
+                    } else {
+                        self.map_get(key)
+                    }
+                }
+            }
+            &LuaValue::Integer(ref i) => {
+                let i = *i;
+                if i < 1 || (i as usize) > self.content.vector.borrow().len() + 1 {
+                    self.map_get(key)
+                } else {
+                    self.sequence_get(&i)
+                }
+            }
+            _ => self.map_get(key),
+        }
+    }
+
+    fn sequence_get(&self, idx: &isize) -> LuaValue {
+        assert!(*idx >= 1);
+        let idx = (idx - 1) as usize;
+        return self.content.vector.borrow()[idx].clone();
+    }
+
+    fn map_get(&self, idx: &LuaValue) -> LuaValue {
+        let map = self.content.map.borrow();
+        match map.get(&idx) {
+            None => LuaValue::Nil,
+            Some(ref v) => (*v).clone(),
         }
     }
 }

@@ -3,12 +3,10 @@ extern crate nom_lua53;
 use nom_lua53::{parse_all, ParseResult, Statement};
 use nom_lua53::name::VarName;
 
-use std::rc::Rc;
-
 mod expression;
 mod types;
 
-#[derive(PartialEq,Eq,Debug)]
+#[derive(PartialEq, Eq, Debug, Clone)]
 pub enum LuaError {
     TypeError(String),
     IndexError(String),
@@ -32,7 +30,7 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()
             for (var, val) in ass.vars.iter().zip(values.iter()) {
                 let computed_value = expression::eval_expr(val, &ctx);
                 let local_scope = ctx.get_mutable_local_scope().unwrap();
-                Rc::get_mut(local_scope).unwrap().insert(var_to_string(var), computed_value.unwrap());
+                local_scope.set_string(var_to_string(var), &computed_value.unwrap());
             }
         }
         &Statement::Assignment(ref ass) => {
@@ -42,18 +40,7 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()
             }
 
             for (prefexp, val) in ass.vars.iter().zip(values.drain(..)) {
-                if prefexp.suffix_chain.is_empty() {
-                    match prefexp.prefix {
-                        nom_lua53::ExpOrVarName::Exp(_) => return Err(LuaError::OtherError("This affectation doesn't make much sense...".to_owned())),
-                        nom_lua53::ExpOrVarName::VarName(var) => {
-                            let var = var_to_string(&var);
-                            if let Some(scope) = ctx.resolve_name_mut(&var) {
-                                Rc::get_mut(scope).unwrap().insert(var, val);
-                            }
-                        }
-                    }
-
-                }
+                println!("Temp: Assigning {:?} to {:?}", prefexp, val);
             }
             println!("Assigning {:?} to {:?}", ass.vals, ass.vars);
         }
@@ -71,6 +58,7 @@ pub fn eval_file(input: &[u8]) -> Result<()> {
                 parse_statement(&stmt, &mut ctx)?;
             }
             println!("{:?}", ctx.get_local_scope());
+            println!("{:?}", ctx);
         }
 
         ParseResult::Error(rest, ss) => {
