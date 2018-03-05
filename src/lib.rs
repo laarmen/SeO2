@@ -23,10 +23,12 @@ pub fn var_to_string(var: &VarName) -> String {
     String::from_utf8_lossy(var.0).to_string()
 }
 
-pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()>{
+pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()> {
     match stmt {
         &Statement::LVarAssign(ref ass) => {
-            let values = ass.vals.as_ref().expect("There should be some values. Why isn't there any value?!");
+            let values = ass.vals
+                .as_ref()
+                .expect("There should be some values. Why isn't there any value?!");
             for (var, val) in ass.vars.iter().zip(values.iter()) {
                 let computed_value = expression::eval_expr(val, &ctx);
                 let local_scope = ctx.get_mutable_local_scope().unwrap();
@@ -60,7 +62,7 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()
     return Ok(());
 }
 
-pub fn eval_file(input: &[u8]) -> Result<()>{
+pub fn eval_file(input: &[u8]) -> Result<()> {
     let mut ctx = types::LuaState::new();
     match parse_all(input) {
         ParseResult::Done(blk) => {

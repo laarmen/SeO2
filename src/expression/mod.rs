@@ -1,8 +1,8 @@
 mod binop;
 mod unop;
 
-use super::{LuaError, Result, var_to_string};
-use super::types::{LuaValue, LuaTable, LuaState};
+use super::{var_to_string, LuaError, Result};
+use super::types::{LuaState, LuaTable, LuaValue};
 
 use nom_lua53;
 use std;
@@ -15,19 +15,19 @@ fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
 fn num_coercion(val: LuaValue) -> LuaValue {
     match val {
         LuaValue::Str(s) => {
-            let parsed =  str::parse::<isize>(&s);
+            let parsed = str::parse::<isize>(&s);
             match parsed {
                 Ok(n) => LuaValue::Integer(n),
                 Err(_) => {
-                    let parsed =  str::parse::<f64>(&s);
+                    let parsed = str::parse::<f64>(&s);
                     match parsed {
                         Ok(n) => LuaValue::Float(n),
-                        Err(_) => LuaValue::Str(s)
+                        Err(_) => LuaValue::Str(s),
                     }
                 }
             }
-        },
-        _ => val
+        }
+        _ => val,
     }
 }
 
@@ -39,8 +39,12 @@ pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
             nom_lua53::num::Numeral::Float(fl) => LuaValue::Float(fl),
             nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
         }),
-        nom_lua53::Exp::BinExp(ref left, ref op, ref right) => binop::eval_binary_expr(left, right, &op, ctx),
-        nom_lua53::Exp::UnExp(ref operator, ref operand) => unop::eval_unary_expr(operand, &operator, ctx),
+        nom_lua53::Exp::BinExp(ref left, ref op, ref right) => {
+            binop::eval_binary_expr(left, right, &op, ctx)
+        }
+        nom_lua53::Exp::UnExp(ref operator, ref operand) => {
+            unop::eval_unary_expr(operand, &operator, ctx)
+        }
         nom_lua53::Exp::Str(ref s) => Ok(LuaValue::Str(lit_to_string(s))),
         nom_lua53::Exp::Table(ref t) => eval_inline_table(t, ctx),
         nom_lua53::Exp::Ellipses => Err(LuaError::NotImplementedError),
@@ -50,13 +54,13 @@ pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
     }
 }
 
-fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) ->  Result<LuaValue> {
+fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) -> Result<LuaValue> {
     // First, we count how many positional epxressions there are to only do one allocation.
     let mut sequence_count = 0;
     for field in src.into_iter() {
         match field {
-            &nom_lua53::Field::PosAssign(_) => sequence_count = sequence_count+1,
-            _ => ()
+            &nom_lua53::Field::PosAssign(_) => sequence_count = sequence_count + 1,
+            _ => (),
         }
     }
 
@@ -66,13 +70,13 @@ fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) ->  Result<LuaVa
         match *field {
             nom_lua53::Field::PosAssign(ref exp) => {
                 ret.set(&LuaValue::Integer(next_index), &eval_expr(exp, ctx)?)?;
-                next_index = next_index+1;
-            },
+                next_index = next_index + 1;
+            }
             nom_lua53::Field::ExpAssign(ref key, ref value) => {
                 let key = eval_expr(key, ctx)?;
                 let value = eval_expr(value, ctx)?;
                 ret.set(&key, &value)?;
-            },
+            }
             nom_lua53::Field::NameAssign(ref key, ref value) => {
                 let key = var_to_string(key);
                 let value = eval_expr(value, ctx)?;
@@ -87,7 +91,7 @@ pub fn boolean_coercion(val: &LuaValue) -> bool {
     match *val {
         LuaValue::Nil => false,
         LuaValue::Boolean(b) => b,
-        _ => true
+        _ => true,
     }
 }
 

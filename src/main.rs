@@ -4,7 +4,9 @@ use std::io::{self, Read};
 
 fn main() {
     let mut input = Vec::new();
-    io::stdin().read_to_end(&mut input).expect("Couldn't read from stdin");
+    io::stdin()
+        .read_to_end(&mut input)
+        .expect("Couldn't read from stdin");
 
-    seo2::eval_file(&input);
+    println!("{:?}", seo2::eval_file(&input));
 }
