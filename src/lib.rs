@@ -49,6 +49,9 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()
             }
             println!("Assigning {:?} to {:?}", ass.vals, ass.vars);
         }
+        &Statement::Semicolon => {
+            println!("Semicolon...");
+        }
         _ => {}
     }
     return Ok(());
