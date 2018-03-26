@@ -1,5 +1,6 @@
 use nom_lua53;
 use nom_lua53::Statement;
+use nom_lua53::RepeatBlock;
 use nom_lua53::stat_expr_types::Block;
 use types::LuaState;
 use expression;
@@ -52,6 +53,9 @@ pub fn exec_statement(stmt: &Statement, ctx: &mut LuaState) -> Result<FlowContro
         }
         &Statement::While(ref blk) => {
             exec_while(blk, ctx)
+        }
+        &Statement::Repeat(ref blk) => {
+            exec_repeat(blk, ctx)
         }
         &Statement::Break => Ok(FlowControl::Break),
         _ => {Ok(FlowControl::None)}
@@ -119,4 +123,33 @@ pub fn exec_while(blk: &nom_lua53::WhileBlock, ctx: &mut LuaState) -> Result<Flo
         }
     }
     return Ok(FlowControl::None)
+}
+
+pub fn exec_repeat(blk: &RepeatBlock, ctx: &mut LuaState) -> Result<FlowControl> {
+    let mut ret = FlowControl::None;
+    loop {
+        ctx.push_scope();
+        for stmt in blk.block.stmts.iter() {
+            match exec_statement(&stmt, ctx)? {
+                FlowControl::Break => { ret =  FlowControl::Break; break },
+                FlowControl::Return(val) => { ret = FlowControl::Return(val); break },
+                FlowControl::None => {}
+            }
+        };
+        if ret != FlowControl::None {
+            if let Some(ref expressions) = blk.block.ret_stmt {
+                let mut results = std::vec::Vec::with_capacity(expressions.len());
+                for exp in expressions {
+                    results.push(expression::eval_expr(exp, ctx)?)
+                }
+                ret = FlowControl::Return(results);
+            }
+        }
+        if ret != FlowControl::None || expression::boolean_coercion(&expression::eval_expr(&blk.cond, ctx)?) {
+            ctx.pop_scope();
+            break
+        }
+        ctx.pop_scope();
+    };
+    Ok(ret)
 }
