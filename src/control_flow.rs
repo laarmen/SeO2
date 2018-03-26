@@ -56,6 +56,7 @@ pub fn exec_statement(stmt: &Statement, ctx: &mut LuaState) -> Result<FlowContro
 
 
 pub fn exec_block(block: &Block, ctx: &mut LuaState) -> Result<FlowControl> {
+    ctx.push_scope();
     for stmt in block.stmts.iter() {
         match exec_statement(&stmt, ctx)? {
             FlowControl::Break => return Ok(FlowControl::Break),
@@ -73,8 +74,9 @@ pub fn exec_block(block: &Block, ctx: &mut LuaState) -> Result<FlowControl> {
         Ok(FlowControl::None)
     };
 
+    ctx.pop_scope();
     return ret
-        }
+}
 
 pub fn exec_if_then_else(ite: &nom_lua53::IfThenElse, ctx: &mut LuaState) -> Result<FlowControl> {
     if expression::boolean_coercion(&expression::eval_expr(&ite.cond, ctx)?) {
