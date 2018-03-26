@@ -49,6 +49,7 @@ pub fn exec_statement(stmt: &Statement, ctx: &mut LuaState) -> Result<FlowContro
         &Statement::Ite(ref ite) => {
             exec_if_then_else(ite, ctx)
         }
+        &Statement::Break => Ok(FlowControl::Break),
         _ => {Ok(FlowControl::None)}
     }
 }
