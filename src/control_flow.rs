@@ -49,6 +49,9 @@ pub fn exec_statement(stmt: &Statement, ctx: &mut LuaState) -> Result<FlowContro
         &Statement::Ite(ref ite) => {
             exec_if_then_else(ite, ctx)
         }
+        &Statement::While(ref blk) => {
+            exec_while(blk, ctx)
+        }
         &Statement::Break => Ok(FlowControl::Break),
         _ => {Ok(FlowControl::None)}
     }
@@ -97,4 +100,20 @@ pub fn exec_if_then_else(ite: &nom_lua53::IfThenElse, ctx: &mut LuaState) -> Res
               }
           }
     }
+}
+
+pub fn exec_while(blk: &nom_lua53::WhileBlock, ctx: &mut LuaState) -> Result<FlowControl> {
+    while expression::boolean_coercion(&expression::eval_expr(&blk.cond, ctx)?) {
+        let disrupt = exec_block(&blk.block, ctx)?;
+        match disrupt {
+            FlowControl::Return(val) => {
+                return Ok(FlowControl::Return(val))
+            }
+            FlowControl::Break => {
+                return Ok(FlowControl::None)
+            }
+            FlowControl::None => {}
+        }
+    }
+    return Ok(FlowControl::None)
 }
