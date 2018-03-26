@@ -5,6 +5,7 @@ use nom_lua53::name::VarName;
 
 mod expression;
 mod types;
+mod control_flow;
 
 #[derive(PartialEq, Eq, Debug, Clone)]
 pub enum LuaError {
@@ -21,7 +22,7 @@ pub fn var_to_string(var: &VarName) -> String {
     String::from_utf8_lossy(var.0).to_string()
 }
 
-pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()> {
+pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<control_flow::FlowDisruption> {
     match stmt {
         &Statement::LVarAssign(ref ass) => {
             let values = ass.vals
@@ -52,9 +53,12 @@ pub fn parse_statement(stmt: &Statement, ctx: &mut types::LuaState) -> Result<()
         &Statement::Semicolon => {
             println!("Semicolon...");
         }
+        &Statement::Ite(ref ite) => {
+            return control_flow::exec_if_then_else(ite, ctx);
+        }
         _ => {}
     }
-    return Ok(());
+    return Ok(control_flow::FlowDisruption::None);
 }
 
 pub fn eval_file(input: &[u8]) -> Result<()> {
