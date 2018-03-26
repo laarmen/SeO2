@@ -7,6 +7,7 @@ use std;
 use super::{Result, var_to_string};
 use super::types::LuaValue;
 
+#[derive(PartialEq)]
 pub enum FlowControl {
     None,
     Return(Vec<LuaValue>),
@@ -60,25 +61,27 @@ pub fn exec_statement(stmt: &Statement, ctx: &mut LuaState) -> Result<FlowContro
 
 pub fn exec_block(block: &Block, ctx: &mut LuaState) -> Result<FlowControl> {
     ctx.push_scope();
+    let mut ret = FlowControl::None;
     for stmt in block.stmts.iter() {
         match exec_statement(&stmt, ctx)? {
-            FlowControl::Break => return Ok(FlowControl::Break),
-            FlowControl::Return(val) => return Ok(FlowControl::Return(val)),
+            FlowControl::Break => { ret =  FlowControl::Break; break },
+            FlowControl::Return(val) => { ret = FlowControl::Return(val); break },
             FlowControl::None => {}
         }
     };
-    let ret = if let Some(ref expressions) = block.ret_stmt {
-        let mut results = std::vec::Vec::with_capacity(expressions.len());
-        for exp in expressions {
-            results.push(expression::eval_expr(exp, ctx)?)
+
+    if ret != FlowControl::None {
+        if let Some(ref expressions) = block.ret_stmt {
+            let mut results = std::vec::Vec::with_capacity(expressions.len());
+            for exp in expressions {
+                results.push(expression::eval_expr(exp, ctx)?)
+            }
+            ret = FlowControl::Return(results)
         }
-        Ok(FlowControl::Return(results))
-    } else {
-        Ok(FlowControl::None)
-    };
+    }
 
     ctx.pop_scope();
-    return ret
+    Ok(ret)
 }
 
 pub fn exec_if_then_else(ite: &nom_lua53::IfThenElse, ctx: &mut LuaState) -> Result<FlowControl> {
