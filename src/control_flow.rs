@@ -57,6 +57,9 @@ pub fn exec_statement(stmt: &Statement, ctx: &mut LuaState) -> Result<FlowContro
         &Statement::Repeat(ref blk) => {
             exec_repeat(blk, ctx)
         }
+        &Statement::Do(ref blk) => {
+            exec_block(blk, ctx)
+        }
         &Statement::Break => Ok(FlowControl::Break),
         _ => {Ok(FlowControl::None)}
     }
