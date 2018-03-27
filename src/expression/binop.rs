@@ -8,45 +8,15 @@ fn eval_cmp_expr(
     left_op: &Box<Exp>,
     right_op: &Box<Exp>,
     nb_fn: fn(f64, f64) -> bool,
-    str_fn: fn(String, String) -> bool,
+    str_fn: fn(&String, &String) -> bool,
     ctx: &LuaState,
 ) -> Result<LuaValue> {
     let left_op = eval_expr(&left_op, ctx)?;
     let right_op = eval_expr(&right_op, ctx)?;
 
-    match left_op {
-        LuaValue::Str(s1) => match right_op {
-            LuaValue::Str(s2) => Ok(LuaValue::Boolean(str_fn(s1, s2))),
-            _ => Err(TypeError(
-                format!(
-                    "Trying to compare {:?} and  {:?}.",
-                    LuaValue::Str(s1),
-                    right_op
-                ).to_owned(),
-            )),
-        },
-        LuaValue::Integer(i1) => match right_op {
-            LuaValue::Integer(i2) => Ok(LuaValue::Boolean(nb_fn(i1 as f64, i2 as f64))),
-            LuaValue::Float(f) => Ok(LuaValue::Boolean(nb_fn(i1 as f64, f))),
-            _ => Err(TypeError(
-                format!(
-                    "Trying to compare {:?} and  {:?}.",
-                    LuaValue::Integer(i1),
-                    right_op
-                ).to_owned(),
-            )),
-        },
-        LuaValue::Float(f1) => match right_op {
-            LuaValue::Integer(i) => Ok(LuaValue::Boolean(nb_fn(f1, i as f64))),
-            LuaValue::Float(f2) => Ok(LuaValue::Boolean(nb_fn(f1, f2))),
-            _ => Err(TypeError(
-                format!(
-                    "Trying to compare {:?} and  {:?}.",
-                    LuaValue::Float(f1),
-                    right_op
-                ).to_owned(),
-            )),
-        },
+    match (&left_op, &right_op) {
+        (&LuaValue::Str(ref s1), &LuaValue::Str(ref s2)) => Ok(LuaValue::Boolean(str_fn(s1, s2))),
+        (&LuaValue::Number(ref num1), &LuaValue::Number(ref num2)) => Ok(LuaValue::Boolean(nb_fn(num1.to_float(), num2.to_float()))),
         _ => Err(TypeError(
             format!("Trying to compare {:?} and  {:?}.", left_op, right_op).to_owned(),
         )),
@@ -61,31 +31,11 @@ fn concatenation_operator(
     let left_op = num_coercion(eval_expr(&left_op, ctx)?);
     let right_op = num_coercion(eval_expr(&right_op, ctx)?);
 
-    match left_op {
-        LuaValue::Integer(i) => match right_op {
-            LuaValue::Integer(j) => Ok(LuaValue::Str(format!("{}{}", i, j))),
-            LuaValue::Float(f) => Ok(LuaValue::Str(format!("{}{}", i, f))),
-            LuaValue::Str(s) => Ok(LuaValue::Str(format!("{}{}", i, s))),
-            _ => Err(TypeError(
-                "Trying to do concatenation on non-string nor numerical values.".to_owned(),
-            )),
-        },
-        LuaValue::Float(ff) => match right_op {
-            LuaValue::Integer(j) => Ok(LuaValue::Str(format!("{}{}", ff, j))),
-            LuaValue::Float(f) => Ok(LuaValue::Str(format!("{}{}", ff, f))),
-            LuaValue::Str(s) => Ok(LuaValue::Str(format!("{}{}", ff, s))),
-            _ => Err(TypeError(
-                "Trying to do concatenation on non-string nor numerical values.".to_owned(),
-            )),
-        },
-        LuaValue::Str(ss) => match right_op {
-            LuaValue::Integer(j) => Ok(LuaValue::Str(format!("{}{}", ss, j))),
-            LuaValue::Float(f) => Ok(LuaValue::Str(format!("{}{}", ss, f))),
-            LuaValue::Str(s) => Ok(LuaValue::Str(format!("{}{}", ss, s))),
-            _ => Err(TypeError(
-                "Trying to do concatenation on non-string nor numerical values.".to_owned(),
-            )),
-        },
+    match (left_op, right_op) {
+        (LuaValue::Str(s1),     LuaValue::Str(s2))      => Ok(LuaValue::Str(format!("{}{}", s1, s2))),
+        (LuaValue::Number(n),   LuaValue::Str(s))       => Ok(LuaValue::Str(format!("{}{}", n.to_string(), s))),
+        (LuaValue::Str(s),      LuaValue::Number(n))    => Ok(LuaValue::Str(format!("{}{}", s, n.to_string()))),
+        (LuaValue::Number(n1),  LuaValue::Number(n2))   => Ok(LuaValue::Str(format!("{}{}", n1.to_string(), n2.to_string()))),
         _ => Err(TypeError(
             "Trying to do concatenation on non-string nor numerical values.".to_owned(),
         )),
@@ -118,21 +68,11 @@ fn eval_arithmetic(
     let left_op = num_coercion(eval_expr(&left_op, ctx)?);
     let right_op = num_coercion(eval_expr(&right_op, ctx)?);
 
-    match left_op {
-        LuaValue::Integer(i) => match right_op {
-            LuaValue::Integer(j) => integer(i, j),
-            LuaValue::Float(j) => float(i as f64, j),
-            _ => Err(TypeError(
-                "Trying to do arithmetic on non-numerical values.".to_owned(),
-            )),
-        },
-        LuaValue::Float(i) => match right_op {
-            LuaValue::Integer(j) => float(i, j as f64),
-            LuaValue::Float(j) => float(i, j),
-            _ => Err(TypeError(
-                "Trying to do arithmetic on non-numerical values.".to_owned(),
-            )),
-        },
+    match (left_op, right_op) {
+        (LuaValue::Number(num1), LuaValue::Number(num2)) => match (&num1, &num2) {
+            (&Number::Int(i1), &Number::Int(i2))      => integer(i1, i2),
+            _ => float(num1.to_float(), num2.to_float())
+        }
         _ => Err(TypeError(
             "Trying to do arithmetic on non-numerical values.".to_owned(),
         )),
@@ -152,22 +92,22 @@ pub fn eval_binary_expr(
         BinOp::Plus => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(i + j)),
-            |i, j| Ok(LuaValue::Float(i + j)),
+            |i, j| Ok(LuaValue::Number(Number::Int(i + j))),
+            |i, j| Ok(LuaValue::Number(Number::Float(i + j))),
             ctx,
         ),
         BinOp::Minus => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(i - j)),
-            |i, j| Ok(LuaValue::Float(i - j)),
+            |i, j| Ok(LuaValue::Number(Number::Int(i - j))),
+            |i, j| Ok(LuaValue::Number(Number::Float(i - j))),
             ctx,
         ),
         BinOp::Mul => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(i * j)),
-            |i, j| Ok(LuaValue::Float(i * j)),
+            |i, j| Ok(LuaValue::Number(Number::Int(i * j))),
+            |i, j| Ok(LuaValue::Number(Number::Float(i * j))),
             ctx,
         ),
         BinOp::Div => eval_arithmetic(
@@ -177,14 +117,14 @@ pub fn eval_binary_expr(
                 if j == 0 {
                     Err(ArithmeticError("Dividing by 0".to_owned()))
                 } else {
-                    Ok(LuaValue::Float((i as f64) / (j as f64)))
+                    Ok(LuaValue::Number(Number::Float((i as f64) / (j as f64))))
                 }
             },
             |i, j| {
                 if j == 0. {
                     Err(ArithmeticError("Dividing by 0".to_owned()))
                 } else {
-                    Ok(LuaValue::Float(i / j))
+                    Ok(LuaValue::Number(Number::Float(i / j)))
                 }
             },
             ctx,
@@ -198,14 +138,14 @@ pub fn eval_binary_expr(
                 } else {
                     // Careful! The Lua operation is a true modulo whereas
                     // Rust follows the hardware "remainder" spec.
-                    Ok(LuaValue::Integer((i % j + j) % j))
+                    Ok(LuaValue::Number(Number::Int((i % j + j) % j)))
                 }
             },
             |i, j| {
                 if j == 0. {
                     Err(ArithmeticError("Dividing by 0".to_owned()))
                 } else {
-                    Ok(LuaValue::Float(i - (i / j).floor() * j))
+                    Ok(LuaValue::Number(Number::Float(i - (i / j).floor() * j)))
                 }
             },
             ctx,
@@ -217,14 +157,14 @@ pub fn eval_binary_expr(
                 if j == 0 {
                     Err(ArithmeticError("Dividing by 0".to_owned()))
                 } else {
-                    Ok(LuaValue::Integer(i / j))
+                    Ok(LuaValue::Number(Number::Int(i / j)))
                 }
             },
             |i, j| {
                 if j == 0. {
                     Err(ArithmeticError("Dividing by 0".to_owned()))
                 } else {
-                    Ok(LuaValue::Integer((i / j).floor() as isize))
+                    Ok(LuaValue::Number(Number::Int((i / j).floor() as isize)))
                 }
             },
             ctx,
@@ -232,52 +172,52 @@ pub fn eval_binary_expr(
         BinOp::Pow => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Float((i as f64).powf(j as f64))),
-            |i, j| Ok(LuaValue::Float(i.powf(j))),
+            |i, j| Ok(LuaValue::Number(Number::Float((i as f64).powf(j as f64)))),
+            |i, j| Ok(LuaValue::Number(Number::Float(i.powf(j)))),
             ctx,
         ),
         BinOp::BitAnd => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(i & j)),
+            |i, j| Ok(LuaValue::Number(Number::Int(i & j))),
             // This is inefficient as there might have been some casting
             // already...
-            |i, j| Ok(LuaValue::Integer((i as isize) & (j as isize))),
+            |i, j| Ok(LuaValue::Number(Number::Int((i as isize) & (j as isize)))),
             ctx,
         ),
         BinOp::BitOr => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(i | j)),
+            |i, j| Ok(LuaValue::Number(Number::Int(i | j))),
             // This is inefficient as there might have been some casting
             // already...
-            |i, j| Ok(LuaValue::Integer((i as isize) | (j as isize))),
+            |i, j| Ok(LuaValue::Number(Number::Int((i as isize) | (j as isize)))),
             ctx,
         ),
         BinOp::BitXor => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(i ^ j)),
+            |i, j| Ok(LuaValue::Number(Number::Int(i ^ j))),
             // See BitAnd comment
-            |i, j| Ok(LuaValue::Integer((i as isize) ^ (j as isize))),
+            |i, j| Ok(LuaValue::Number(Number::Int((i as isize) ^ (j as isize)))),
             ctx,
         ),
         BinOp::BitShl => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(safe_left_shift(i, j))),
-            |i, j| Ok(LuaValue::Integer(safe_left_shift(i as isize, j as isize))),
+            |i, j| Ok(LuaValue::Number(Number::Int(safe_left_shift(i, j)))),
+            |i, j| Ok(LuaValue::Number(Number::Int(safe_left_shift(i as isize, j as isize)))),
             ctx,
         ),
         BinOp::BitShr => eval_arithmetic(
             left_op,
             right_op,
-            |i, j| Ok(LuaValue::Integer(safe_left_shift(i, -j))),
+            |i, j| Ok(LuaValue::Number(Number::Int(safe_left_shift(i, -j)))),
             |i, j| {
-                Ok(LuaValue::Integer(safe_left_shift(
+                Ok(LuaValue::Number(Number::Int(safe_left_shift(
                     i as isize,
                     -(j as isize),
-                )))
+                ))))
             },
             ctx,
         ),
@@ -339,7 +279,7 @@ mod tests {
             &BinOp::Plus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(0.));
+        assert_eq!(res, LuaValue::Number(Number::Float(0.)));
 
         let res = eval_binary_expr(
             &Box::new(Exp::Str(StringLit(Cow::from(&b"1.0"[..])))),
@@ -347,7 +287,7 @@ mod tests {
             &BinOp::Plus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(0.));
+        assert_eq!(res, LuaValue::Number(Number::Float(0.)));
 
         // 1 + -1. == 0.
         let res = eval_binary_expr(
@@ -356,7 +296,7 @@ mod tests {
             &BinOp::Plus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(0.));
+        assert_eq!(res, LuaValue::Number(Number::Float(0.)));
 
         // "1" + 3 == 4
         let res = eval_binary_expr(
@@ -365,7 +305,7 @@ mod tests {
             &BinOp::Plus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(4));
+        assert_eq!(res, LuaValue::Number(Number::Int(4)));
 
         // 1 + 3 == 4
         let res = eval_binary_expr(
@@ -374,7 +314,7 @@ mod tests {
             &BinOp::Plus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(4));
+        assert_eq!(res, LuaValue::Number(Number::Int(4)));
     }
 
     #[test]
@@ -423,7 +363,7 @@ mod tests {
             &BinOp::Minus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(2.));
+        assert_eq!(res, LuaValue::Number(Number::Float(2.)));
 
         // 1 - -1. == 2.
         let res = eval_binary_expr(
@@ -432,7 +372,7 @@ mod tests {
             &BinOp::Minus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(2.));
+        assert_eq!(res, LuaValue::Number(Number::Float(2.)));
 
         // 1 - 3 == -2
         let res = eval_binary_expr(
@@ -441,7 +381,7 @@ mod tests {
             &BinOp::Minus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(-2));
+        assert_eq!(res, LuaValue::Number(Number::Int(-2)));
     }
 
     #[test]
@@ -454,7 +394,7 @@ mod tests {
             &BinOp::Mul,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(3.75));
+        assert_eq!(res, LuaValue::Number(Number::Float(3.75)));
 
         // -2 * 1.25 == -2.5.
         let res = eval_binary_expr(
@@ -463,7 +403,7 @@ mod tests {
             &BinOp::Mul,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(-2.5));
+        assert_eq!(res, LuaValue::Number(Number::Float(-2.5)));
 
         // 10 * 3 == 30
         let res = eval_binary_expr(
@@ -472,7 +412,7 @@ mod tests {
             &BinOp::Mul,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(30));
+        assert_eq!(res, LuaValue::Number(Number::Int(30)));
     }
 
     #[test]
@@ -485,7 +425,7 @@ mod tests {
             &BinOp::Div,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(3.));
+        assert_eq!(res, LuaValue::Number(Number::Float(3.)));
 
         // 3 / -2. == -1.5
         let res = eval_binary_expr(
@@ -494,7 +434,7 @@ mod tests {
             &BinOp::Div,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(-1.5));
+        assert_eq!(res, LuaValue::Number(Number::Float(-1.5)));
 
         // 3 / 2 == 1.5
         let res = eval_binary_expr(
@@ -503,7 +443,7 @@ mod tests {
             &BinOp::Div,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(1.5));
+        assert_eq!(res, LuaValue::Number(Number::Float(1.5)));
     }
 
     #[test]
@@ -516,7 +456,7 @@ mod tests {
             &BinOp::IntDiv,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(3));
+        assert_eq!(res, LuaValue::Number(Number::Int(3)));
 
         // 3 // -2. == -2
         let res = eval_binary_expr(
@@ -525,7 +465,7 @@ mod tests {
             &BinOp::IntDiv,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(-2));
+        assert_eq!(res, LuaValue::Number(Number::Int(-2)));
 
         // 3 // 2 == 1
         let res = eval_binary_expr(
@@ -534,7 +474,7 @@ mod tests {
             &BinOp::IntDiv,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(1));
+        assert_eq!(res, LuaValue::Number(Number::Int(1)));
     }
 
     #[test]
@@ -547,7 +487,7 @@ mod tests {
             &BinOp::Mod,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(0.));
+        assert_eq!(res, LuaValue::Number(Number::Float(0.)));
 
         // -3.5 % 2. == 0.5
         let res = eval_binary_expr(
@@ -556,7 +496,7 @@ mod tests {
             &BinOp::Mod,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(0.5));
+        assert_eq!(res, LuaValue::Number(Number::Float(0.5)));
 
         // -4 % 3 == 2
         let res = eval_binary_expr(
@@ -565,7 +505,7 @@ mod tests {
             &BinOp::Mod,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(2));
+        assert_eq!(res, LuaValue::Number(Number::Int(2)));
     }
 
     #[test]
@@ -648,7 +588,7 @@ mod tests {
             &BinOp::BitAnd,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(0));
+        assert_eq!(res, LuaValue::Number(Number::Int(0)));
 
         // 3.5 & 10 == 2
         let res = eval_binary_expr(
@@ -657,7 +597,7 @@ mod tests {
             &BinOp::BitAnd,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(2));
+        assert_eq!(res, LuaValue::Number(Number::Int(2)));
 
         // IMAX & 42 == 42
         let res = eval_binary_expr(
@@ -666,7 +606,7 @@ mod tests {
             &BinOp::BitAnd,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(42));
+        assert_eq!(res, LuaValue::Number(Number::Int(42)));
     }
 
     #[test]
@@ -679,7 +619,7 @@ mod tests {
             &BinOp::BitOr,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(1));
+        assert_eq!(res, LuaValue::Number(Number::Int(1)));
 
         // 3.5 | 10 == 2
         let res = eval_binary_expr(
@@ -688,7 +628,7 @@ mod tests {
             &BinOp::BitOr,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(11));
+        assert_eq!(res, LuaValue::Number(Number::Int(11)));
 
         // IMAX | 42 == IMAX
         let res = eval_binary_expr(
@@ -697,7 +637,7 @@ mod tests {
             &BinOp::BitOr,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(isize::max_value()));
+        assert_eq!(res, LuaValue::Number(Number::Int(isize::max_value())));
     }
 
     #[test]
@@ -710,7 +650,7 @@ mod tests {
             &BinOp::BitXor,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(4));
+        assert_eq!(res, LuaValue::Number(Number::Int(4)));
 
         // 3.5 ^ 10 == 9
         let res = eval_binary_expr(
@@ -719,7 +659,7 @@ mod tests {
             &BinOp::BitXor,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(9));
+        assert_eq!(res, LuaValue::Number(Number::Int(9)));
 
         // IMAX ^ 42 == IMAX - 42
         let res = eval_binary_expr(
@@ -728,7 +668,7 @@ mod tests {
             &BinOp::BitXor,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(isize::max_value() - 42));
+        assert_eq!(res, LuaValue::Number(Number::Int(isize::max_value() - 42)));
     }
 
     #[test]
@@ -741,7 +681,7 @@ mod tests {
             &BinOp::BitShl,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(10));
+        assert_eq!(res, LuaValue::Number(Number::Int(10)));
 
         // 3.5 << 10 == 3072
         let res = eval_binary_expr(
@@ -750,7 +690,7 @@ mod tests {
             &BinOp::BitShl,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(3072));
+        assert_eq!(res, LuaValue::Number(Number::Int(3072)));
 
         // 1124 << -9 == 1
         let res = eval_binary_expr(
@@ -759,7 +699,7 @@ mod tests {
             &BinOp::BitShl,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(1));
+        assert_eq!(res, LuaValue::Number(Number::Int(1)));
 
         // 1124 << 1024 == 0
         // Would overflow in Rust, not in Lua
@@ -769,7 +709,7 @@ mod tests {
             &BinOp::BitShl,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(0));
+        assert_eq!(res, LuaValue::Number(Number::Int(0)));
     }
 
     #[test]
@@ -834,7 +774,7 @@ mod tests {
             &BinOp::BoolAnd,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(10));
+        assert_eq!(res, LuaValue::Number(Number::Int(10)));
     }
 
     #[test]
@@ -847,7 +787,7 @@ mod tests {
             &BinOp::BoolOr,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(1.5));
+        assert_eq!(res, LuaValue::Number(Number::Float(1.5)));
 
         // 3.5 or 10 == 3.5
         let res = eval_binary_expr(
@@ -856,6 +796,6 @@ mod tests {
             &BinOp::BoolOr,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(3.5));
+        assert_eq!(res, LuaValue::Number(Number::Float(3.5)));
     }
 }

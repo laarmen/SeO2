@@ -1,4 +1,4 @@
-use super::{boolean_coercion, eval_expr, num_coercion, LuaState, LuaValue, Result};
+use super::{boolean_coercion, eval_expr, num_coercion, LuaState, LuaValue, Result, Number};
 use nom_lua53::op::UnOp;
 use nom_lua53::Exp;
 
@@ -9,22 +9,23 @@ pub fn eval_unary_expr(operand: &Box<Exp>, operator: &UnOp, ctx: &LuaState) -> R
     match *operator {
         UnOp::BoolNot => Ok(LuaValue::Boolean(!boolean_coercion(&operand))),
         UnOp::Minus => match num_coercion(operand) {
-            LuaValue::Integer(i) => Ok(LuaValue::Integer(-i)),
-            LuaValue::Float(f) => Ok(LuaValue::Float(-f)),
+            LuaValue::Number(num) => match num {
+                Number::Int(i) => Ok(LuaValue::Number(Number::Int(-i))),
+                Number::Float(f) => Ok(LuaValue::Number(Number::Float(-f))),
+            }
             _ => Err(TypeError(
                 "Trying to do arithmetic on a non-numerical value.".to_owned(),
             )),
         },
         UnOp::Length => match operand {
-            LuaValue::Str(s) => Ok(LuaValue::Integer(s.len() as isize)),
-            LuaValue::Table(t) => Ok(LuaValue::Integer(t.sequence_border() as isize)),
+            LuaValue::Str(s) => Ok(LuaValue::Number(Number::Int(s.len() as isize))),
+            LuaValue::Table(t) => Ok(LuaValue::Number(Number::Int(t.sequence_border() as isize))),
             _ => Err(TypeError(
                 "Trying to do get size on an unsupported type.".to_owned(),
             )),
         },
         UnOp::BitNot => match num_coercion(operand) {
-            LuaValue::Integer(i) => Ok(LuaValue::Integer(!i)),
-            LuaValue::Float(f) => Ok(LuaValue::Integer(!(f as isize))),
+            LuaValue::Number(num) => Ok(LuaValue::Number(Number::Int(!num.to_int()))),
             _ => Err(TypeError(
                 "Trying to do bitwise inversion on a non-numerical value.".to_owned(),
             )),
@@ -49,22 +50,22 @@ mod tests {
         // 1. + -1. == 0.
         let res =
             eval_unary_expr(&Box::new(Exp::Num(Numeral::Float(1.0))), &UnOp::Minus, &ctx).unwrap();
-        assert_eq!(res, LuaValue::Float(-1.));
+        assert_eq!(res, LuaValue::Number(Number::Float(-1.)));
 
         let res =
             eval_unary_expr(&Box::new(Exp::Num(Numeral::Int(0))), &UnOp::Minus, &ctx).unwrap();
-        assert_eq!(res, LuaValue::Integer(0));
+        assert_eq!(res, LuaValue::Number(Number::Int(0)));
 
         let res =
             eval_unary_expr(&Box::new(Exp::Num(Numeral::Int(-4))), &UnOp::Minus, &ctx).unwrap();
-        assert_eq!(res, LuaValue::Integer(4));
+        assert_eq!(res, LuaValue::Number(Number::Int(4)));
 
         let res = eval_unary_expr(
             &Box::new(Exp::Str(StringLit(Cow::from(&b"5.5"[..])))),
             &UnOp::Minus,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Float(-5.5));
+        assert_eq!(res, LuaValue::Number(Number::Float(-5.5)));
 
         let res = eval_unary_expr(&Box::new(Exp::Bool(true)), &UnOp::Minus, &ctx).unwrap_err();
         assert!(match res {
@@ -107,7 +108,7 @@ mod tests {
             &UnOp::Length,
             &ctx,
         ).unwrap();
-        assert_eq!(res, LuaValue::Integer(4));
+        assert_eq!(res, LuaValue::Number(Number::Int(4)));
 
         let res = eval_unary_expr(&Box::new(Exp::Bool(true)), &UnOp::Length, &ctx).unwrap_err();
         assert!(match res {
@@ -121,7 +122,7 @@ mod tests {
         let ctx = LuaState::new();
         let res =
             eval_unary_expr(&Box::new(Exp::Num(Numeral::Int(0))), &UnOp::BitNot, &ctx).unwrap();
-        assert_eq!(res, LuaValue::Integer(-1));
+        assert_eq!(res, LuaValue::Number(Number::Int(-1)));
 
         let res = eval_unary_expr(&Box::new(Exp::Bool(true)), &UnOp::BitNot, &ctx).unwrap_err();
         assert!(match res {

@@ -6,7 +6,7 @@ use types::LuaState;
 use expression;
 use std;
 use super::{Result, var_to_string};
-use super::types::LuaValue;
+use super::types::{ LuaValue, Number };
 
 #[derive(PartialEq)]
 pub enum FlowControl {

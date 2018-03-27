@@ -3,7 +3,7 @@ mod unop;
 pub mod prefixexp;
 
 use super::{var_to_string, LuaError, Result};
-use super::types::{LuaState, LuaTable, LuaValue};
+use super::types::{LuaState, LuaTable, LuaValue, Number};
 
 use nom_lua53;
 use std;
@@ -13,16 +13,16 @@ fn lit_to_string(string: &nom_lua53::string::StringLit) -> String {
     return String::from_utf8_lossy(&(string.0)).to_string();
 }
 
-fn num_coercion(val: LuaValue) -> LuaValue {
+pub fn num_coercion(val: LuaValue) -> LuaValue {
     match val {
         LuaValue::Str(s) => {
             let parsed = str::parse::<isize>(&s);
             match parsed {
-                Ok(n) => LuaValue::Integer(n),
+                Ok(n) => LuaValue::Number(Number::Int(n)),
                 Err(_) => {
                     let parsed = str::parse::<f64>(&s);
                     match parsed {
-                        Ok(n) => LuaValue::Float(n),
+                        Ok(n) => LuaValue::Number(Number::Float(n)),
                         Err(_) => LuaValue::Str(s),
                     }
                 }
@@ -37,8 +37,8 @@ pub fn eval_expr(expr: &nom_lua53::Exp, ctx: &LuaState) -> Result<LuaValue> {
         nom_lua53::Exp::Nil => Ok(LuaValue::Nil),
         nom_lua53::Exp::Bool(val) => Ok(LuaValue::Boolean(val)),
         nom_lua53::Exp::Num(val) => Ok(match val {
-            nom_lua53::num::Numeral::Float(fl) => LuaValue::Float(fl),
-            nom_lua53::num::Numeral::Int(i) => LuaValue::Integer(i),
+            nom_lua53::num::Numeral::Float(fl) => LuaValue::Number(Number::Float(fl)),
+            nom_lua53::num::Numeral::Int(i) => LuaValue::Number(Number::Int(i)),
         }),
         nom_lua53::Exp::BinExp(ref left, ref op, ref right) => {
             binop::eval_binary_expr(left, right, &op, ctx)
@@ -72,7 +72,7 @@ fn eval_inline_table(src: &nom_lua53::TableLit, ctx: &LuaState) -> Result<LuaVal
     for field in src.iter() {
         match *field {
             nom_lua53::Field::PosAssign(ref exp) => {
-                ret.set(&LuaValue::Integer(next_index), &eval_expr(exp, ctx)?)?;
+                ret.set(&LuaValue::Number(Number::Int(next_index)), &eval_expr(exp, ctx)?)?;
                 next_index = next_index + 1;
             }
             nom_lua53::Field::ExpAssign(ref key, ref value) => {
@@ -105,8 +105,8 @@ mod tests {
     #[test]
     fn test_boolean_coercion() {
         assert!(boolean_coercion(&LuaValue::Str("".to_owned())));
-        assert!(boolean_coercion(&LuaValue::Integer(0)));
-        assert!(boolean_coercion(&LuaValue::Integer(2)));
+        assert!(boolean_coercion(&LuaValue::Number(Number::Int(0))));
+        assert!(boolean_coercion(&LuaValue::Number(Number::Int(2))));
         assert!(!boolean_coercion(&LuaValue::Nil));
         assert!(!boolean_coercion(&LuaValue::Boolean(false)));
         assert!(boolean_coercion(&LuaValue::Boolean(true)));

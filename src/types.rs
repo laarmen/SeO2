@@ -128,32 +128,33 @@ impl LuaTable {
     }
 
     pub fn set(&self, key: &LuaValue, value: &LuaValue) -> Result<()> {
-        match *key {
-            LuaValue::Nil => Err(LuaError::IndexError(
+        match key {
+            &LuaValue::Nil => Err(LuaError::IndexError(
                 "Using nil as a table index".to_owned(),
             )),
-            LuaValue::Float(f) => {
-                if f.is_nan() {
-                    Err(LuaError::IndexError(
-                        "Using NaN as a table index".to_owned(),
-                    ))
-                } else {
-                    let round = f.round();
-                    if round == f {
-                        self.set(&LuaValue::Integer(round as isize), value)?
+            &LuaValue::Number(ref num) => match num {
+                &Number::Float(f) => 
+                    if f.is_nan() {
+                        Err(LuaError::IndexError(
+                            "Using NaN as a table index".to_owned(),
+                        ))
                     } else {
-                        self.map_set(key, value)
-                    };
+                        let round = f.round();
+                        if round == f {
+                            self.set(&LuaValue::Number(Number::Int(round as isize)), value)?
+                        } else {
+                            self.map_set(key, value)
+                        };
+                        Ok(())
+                    }
+                &Number::Int(i) => {
+                    if i < 1 || (i as usize) > self.content.vector.borrow().len() + 1 {
+                        self.map_set(key, value);
+                    } else {
+                        self.sequence_set(i, value);
+                    }
                     Ok(())
                 }
-            }
-            LuaValue::Integer(i) => {
-                if i < 1 || (i as usize) > self.content.vector.borrow().len() + 1 {
-                    self.map_set(key, value);
-                } else {
-                    self.sequence_set(i, value);
-                }
-                Ok(())
             }
             _ => {
                 self.map_set(key, value);
@@ -201,27 +202,29 @@ impl LuaTable {
     pub fn get_string(&self, key: String) -> LuaValue {
         self.map_get(&LuaValue::Str(key))
     }
+
     pub fn get(&self, key: &LuaValue) -> LuaValue {
         match key {
             &LuaValue::Nil => LuaValue::Nil,
-            &LuaValue::Float(ref f) => {
-                if f.is_nan() {
-                    LuaValue::Nil
-                } else {
-                    let round = f.round();
-                    if round == *f {
-                        self.get(&LuaValue::Integer(round as isize))
+            &LuaValue::Number(ref num) => match num {
+                &Number::Float(f) => {
+                    if f.is_nan() {
+                        LuaValue::Nil
                     } else {
-                        self.map_get(key)
+                        let round = f.round();
+                        if round == f {
+                            self.get(&LuaValue::Number(Number::Int(round as isize)))
+                        } else {
+                            self.map_get(key)
+                        }
                     }
                 }
-            }
-            &LuaValue::Integer(ref i) => {
-                let i = *i;
-                if i < 1 || (i as usize) > self.content.vector.borrow().len() + 1 {
-                    self.map_get(key)
-                } else {
-                    self.sequence_get(&i)
+                &Number::Int(i) => {
+                    if i < 1 || (i as usize) > self.content.vector.borrow().len() + 1 {
+                        self.map_get(key)
+                    } else {
+                        self.sequence_get(&i)
+                    }
                 }
             }
             _ => self.map_get(key),
@@ -244,13 +247,32 @@ impl LuaTable {
 }
 
 #[derive(Debug, PartialEq, Clone)]
-pub enum LuaValue {
-    Nil,
-    Integer(isize),
+pub enum Number {
     Float(f64),
-    Boolean(bool),
-    Str(String),
-    Table(LuaTable),
+    Int(isize)
+}
+
+impl Number {
+    pub fn to_float(&self) -> f64 {
+        match self {
+            &Number::Float(f) => f,
+            &Number::Int(i) => i as f64,
+        }
+    }
+    pub fn to_int(&self) -> isize {
+        match self {
+            &Number::Float(f) => f as isize,
+            &Number::Int(i) => i,
+        }
+    }
+}
+impl ToString for Number {
+    fn to_string(&self) -> String {
+        match self {
+            &Number::Float(f) => f.to_string(),
+            &Number::Int(i) => i.to_string()
+        }
+    }
 }
 
 // This trait is there to say that the equality is symmetric, reflexive and transitive,
@@ -258,17 +280,22 @@ pub enum LuaValue {
 // only used in the table hashmap, and the specs say that a Lua table won't ever have NaN
 // as an index, so...
 // WARNING: This is gonna bite me in the rear.
-impl Eq for LuaValue {}
+impl Eq for Number {}
 
-impl Hash for LuaValue {
+impl Hash for Number {
     fn hash<H: Hasher>(&self, state: &mut H) {
         match self {
-            &LuaValue::Nil => 0.hash(state),
-            &LuaValue::Integer(ref i) => i.hash(state),
-            &LuaValue::Float(ref f) => f.to_bits().hash(state),
-            &LuaValue::Boolean(ref b) => b.hash(state),
-            &LuaValue::Str(ref s) => s.hash(state),
-            &LuaValue::Table(ref t) => t.hash(state),
+            &Number::Int(ref i) => i.hash(state),
+            &Number::Float(ref f) => f.to_bits().hash(state),
         }
     }
+}
+
+#[derive(Debug, PartialEq, Eq, Clone, Hash)]
+pub enum LuaValue {
+    Nil,
+    Number(Number),
+    Boolean(bool),
+    Str(String),
+    Table(LuaTable),
 }
